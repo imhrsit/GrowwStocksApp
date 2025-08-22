@@ -39,7 +39,11 @@ export const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
     const colorScheme = useColorScheme();
     const [selectedWatchlists, setSelectedWatchlists] = useState<string[]>([]);
     const [newWatchlistName, setNewWatchlistName] = useState('');
-    const [showCreateNew, setShowCreateNew] = useState(false);
+    const [showCreateNew, setShowCreateNew] = useState(watchlists.length === 0);
+
+    React.useEffect(() => {
+        setShowCreateNew(watchlists.length === 0);
+    }, [watchlists.length, visible]);
 
     const handleToggleWatchlist = (watchlistId: string) => {
         setSelectedWatchlists(prev => 
@@ -51,22 +55,25 @@ export const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
 
     const handleSubmit = () => {
         if (selectedWatchlists.length === 0 && !newWatchlistName.trim()) {
-            Alert.alert('Error', 'Please select a watchlist or create a new one');
+            if (watchlists.length === 0) {
+                Alert.alert('Create Watchlist', 'Please enter a name for your new watchlist');
+            } else {
+                Alert.alert('Select Option', 'Please select an existing watchlist or create a new one');
+            }
             return;
         }
 
         onAddToWatchlist(selectedWatchlists, newWatchlistName.trim() || undefined);
         
-        // Reset form
         setSelectedWatchlists([]);
         setNewWatchlistName('');
-        setShowCreateNew(false);
+        setShowCreateNew(watchlists.length === 0);
     };
 
     const handleClose = () => {
         setSelectedWatchlists([]);
         setNewWatchlistName('');
-        setShowCreateNew(false);
+        setShowCreateNew(watchlists.length === 0);
         onClose();
     };
 
@@ -90,6 +97,16 @@ export const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
                     </View>
 
                     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                        {/* No Watchlists Message */}
+                        {watchlists.length === 0 && (
+                            <View style={styles.section}>
+                                <ThemedText style={styles.sectionTitle}>Create Your First Watchlist</ThemedText>
+                                <ThemedText style={styles.noWatchlistsText}>
+                                    You don't have any watchlists yet. Create your first one to start tracking stocks!
+                                </ThemedText>
+                            </View>
+                        )}
+
                         {/* Existing Watchlists */}
                         {watchlists.length > 0 && (
                             <View style={styles.section}>
@@ -236,6 +253,12 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         marginBottom: 12,
+    },
+    noWatchlistsText: {
+        fontSize: 14,
+        opacity: 0.7,
+        lineHeight: 20,
+        textAlign: 'center',
     },
     watchlistItem: {
         flexDirection: 'row',

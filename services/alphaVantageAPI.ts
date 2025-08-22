@@ -2,7 +2,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { ENV } from '../env';
 
-// Cache expiration time (in milliseconds) - default to 5 minutes if not set
 const CACHE_EXPIRATION = ENV.CACHE_EXPIRATION_TIME;
 
 export interface StockQuote {

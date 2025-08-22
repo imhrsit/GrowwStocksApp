@@ -28,7 +28,7 @@ interface ChartData {
 interface Watchlist {
     id: string;
     name: string;
-    stocks: string[]; // Array of stock symbols
+    stocks: string[];
 }
 
 interface StockPriceData {
@@ -89,7 +89,7 @@ export default function StockDetailsScreen() {
                 }
                 
                 const chartData: ChartData = {
-                    labels: entries.map(([time]) => time.split(' ')[1].substring(0, 5)), // Extract time part
+                    labels: entries.map(([time]) => time.split(' ')[1].substring(0, 5)),
                     datasets: [
                         {
                             data: entries.map(([, data]) => parseFloat((data as any)['4. close'])),
@@ -359,8 +359,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingHorizontal: 15,
+        paddingVertical: 5,
     },
     backButton: {
         padding: 8,
@@ -374,13 +374,14 @@ const styles = StyleSheet.create({
     },
     stockHeader: {
         alignItems: 'center',
-        paddingVertical: 24,
-        marginBottom: 20,
+        paddingVertical: 10,
+        marginBottom: 10,
     },
     stockSymbol: {
         fontSize: 28,
         fontWeight: 'bold',
         marginBottom: 4,
+        marginTop: 5,
     },
     companyName: {
         fontSize: 16,
@@ -395,6 +396,7 @@ const styles = StyleSheet.create({
         fontSize: 32,
         fontWeight: 'bold',
         marginBottom: 8,
+        marginTop: 2,
     },
     changeContainer: {
         flexDirection: 'row',

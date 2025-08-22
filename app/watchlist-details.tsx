@@ -46,12 +46,10 @@ export default function WatchlistDetailsScreen() {
                 if (currentWatchlist) {
                     setWatchlist(currentWatchlist);
                     
-                    // For demo purposes, we'll use mock data for stock prices
-                    // In a real app, you'd fetch current prices for each stock
                     const stockData: Stock[] = currentWatchlist.stocks.map(symbol => ({
                         symbol,
                         name: symbol,
-                        price: Math.random() * 200 + 50, // Mock price
+                        price: Math.random() * 200 + 50,
                         change: (Math.random() - 0.5) * 10,
                         changePercent: (Math.random() - 0.5) * 10,
                         volume: Math.floor(Math.random() * 1000000).toString(),
@@ -86,7 +84,6 @@ export default function WatchlistDetailsScreen() {
                 
                 await AsyncStorage.setItem('watchlists', JSON.stringify(updatedWatchlists));
                 
-                // Update local state
                 const updatedWatchlist = updatedWatchlists.find(w => w.id === watchlistId);
                 if (updatedWatchlist) {
                     setWatchlist(updatedWatchlist);
@@ -219,8 +216,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingHorizontal: 15,
+        paddingVertical: 5,
     },
     backButton: {
         padding: 8,

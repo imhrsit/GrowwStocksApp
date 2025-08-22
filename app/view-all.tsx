@@ -62,8 +62,6 @@ export default function ViewAllScreen() {
                 setStocks(stockData);
             }
 
-            // For demo purposes, we'll show all data from API
-            // In a real app, you might implement server-side pagination
             setHasMore(false);
             setPage(pageNum);
         } catch (error) {
@@ -168,8 +166,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingHorizontal: 15,
+        paddingVertical: 5,
     },
     backButton: {
         padding: 8,
