@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Loading } from '@/components/Loading';
@@ -143,27 +143,16 @@ export default function WatchlistDetailsScreen() {
     };
 
     const renderStockItem = ({ item }: { item: Stock }) => (
-        <View style={styles.stockItemContainer}>
-            <StockCard 
-                stock={item} 
-                onPress={() => {
-                    router.push({
-                        pathname: '/stock-details',
-                        params: { symbol: item.symbol }
-                    });
-                }}
-                style={styles.stockCard}
-            />
-            <TouchableOpacity
-                style={[
-                    styles.removeButton,
-                    { backgroundColor: Colors[colorScheme ?? 'light'].cardBackground }
-                ]}
-                onPress={() => handleRemoveStock(item)}
-            >
-                <IconSymbol name="trash" size={16} color="#EF4444" />
-            </TouchableOpacity>
-        </View>
+        <StockCard 
+            stock={item} 
+            onPress={() => {
+                router.push({
+                    pathname: '/stock-details',
+                    params: { symbol: item.symbol }
+                });
+            }}
+            onLongPress={() => handleRemoveStock(item)}
+        />
     );
 
     const renderEmptyState = () => (
@@ -190,15 +179,15 @@ export default function WatchlistDetailsScreen() {
     if (loading) {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
-                <View style={styles.header}>
+                <ThemedView style={styles.header}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                         <IconSymbol name="chevron.left" size={24} color={Colors[colorScheme ?? 'light'].text} />
                     </TouchableOpacity>
                     <ThemedText style={styles.headerTitle}>{watchlistName}</ThemedText>
                     <TouchableOpacity onPress={handleDeleteWatchlist} style={styles.deleteButton}>
-                        <IconSymbol name="trash" size={20} color="#EF4444" />
+                        <IconSymbol name="trash" size={20} color={Colors[colorScheme ?? 'light'].danger} />
                     </TouchableOpacity>
-                </View>
+                </ThemedView>
                 <Loading text="Loading watchlist..." />
             </SafeAreaView>
         );
@@ -206,21 +195,21 @@ export default function WatchlistDetailsScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
-            <View style={styles.header}>
+            <ThemedView style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <IconSymbol name="chevron.left" size={24} color={Colors[colorScheme ?? 'light'].text} />
                 </TouchableOpacity>
                 <ThemedText style={styles.headerTitle}>{watchlistName}</ThemedText>
                 <TouchableOpacity onPress={handleDeleteWatchlist} style={styles.deleteButton}>
-                    <IconSymbol name="trash" size={20} color="#EF4444" />
+                    <IconSymbol name="trash" size={20} color={Colors[colorScheme ?? 'light'].danger} />
                 </TouchableOpacity>
-            </View>
+            </ThemedView>
 
             <ThemedView style={styles.content}>
                 {stocks.length > 0 ? (
                     <>
                         <ThemedText style={styles.subtitle}>
-                            {stocks.length} stocks • Swipe to remove
+                            {stocks.length} stocks • Long press to remove
                         </ThemedText>
 
                         <FlatList
@@ -230,8 +219,13 @@ export default function WatchlistDetailsScreen() {
                             numColumns={2}
                             columnWrapperStyle={styles.row}
                             showsVerticalScrollIndicator={false}
-                            refreshing={refreshing}
-                            onRefresh={handleRefresh}
+                            refreshControl={
+                                <RefreshControl
+                                    refreshing={refreshing}
+                                    onRefresh={handleRefresh}
+                                    tintColor={Colors[colorScheme ?? 'light'].primary}
+                                />
+                            }
                             contentContainerStyle={styles.listContainer}
                         />
                     </>
@@ -251,23 +245,20 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 15,
-        paddingVertical: 5,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
     },
     backButton: {
-        padding: 8,
+        padding: 4,
     },
     deleteButton: {
-        padding: 8,
+        padding: 4,
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: '600',
         flex: 1,
         textAlign: 'center',
-    },
-    placeholder: {
-        width: 40,
     },
     content: {
         flex: 1,
@@ -280,36 +271,10 @@ const styles = StyleSheet.create({
     },
     listContainer: {
         paddingBottom: 20,
+        paddingVertical: 4,
     },
     row: {
         justifyContent: 'space-between',
-    },
-    stockItemContainer: {
-        flex: 1,
-        paddingHorizontal: 4,
-        marginBottom: 12,
-        position: 'relative',
-    },
-    stockCard: {
-        flex: 1,
-    },
-    removeButton: {
-        position: 'absolute',
-        top: 8,
-        right: 12,
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        shadowOpacity: 0.2,
-        shadowRadius: 1.41,
-        elevation: 2,
     },
     emptyContainer: {
         flex: 1,

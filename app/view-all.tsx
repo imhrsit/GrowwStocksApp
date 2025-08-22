@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Loading } from '@/components/Loading';
@@ -85,18 +85,15 @@ export default function ViewAllScreen() {
     };
 
     const renderStockItem = ({ item }: { item: Stock }) => (
-        <View style={styles.stockItemContainer}>
-            <StockCard 
-                stock={item} 
-                onPress={() => {
-                    router.push({
-                        pathname: '/stock-details',
-                        params: { symbol: item.symbol }
-                    });
-                }}
-                style={styles.stockCard}
-            />
-        </View>
+        <StockCard 
+            stock={item} 
+            onPress={() => {
+                router.push({
+                    pathname: '/stock-details',
+                    params: { symbol: item.symbol }
+                });
+            }}
+        />
     );
 
     const renderLoadingFooter = () => {
@@ -112,13 +109,13 @@ export default function ViewAllScreen() {
     if (loading && stocks.length === 0) {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
-                <View style={styles.header}>
+                <ThemedView style={styles.header}>
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                         <IconSymbol name="chevron.left" size={24} color={Colors[colorScheme ?? 'light'].text} />
                     </TouchableOpacity>
                     <ThemedText style={styles.headerTitle}>{title}</ThemedText>
                     <View style={styles.placeholder} />
-                </View>
+                </ThemedView>
                 <Loading text="Loading stocks..." />
             </SafeAreaView>
         );
@@ -126,13 +123,13 @@ export default function ViewAllScreen() {
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
-            <View style={styles.header}>
+            <ThemedView style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <IconSymbol name="chevron.left" size={24} color={Colors[colorScheme ?? 'light'].text} />
                 </TouchableOpacity>
                 <ThemedText style={styles.headerTitle}>{title}</ThemedText>
                 <View style={styles.placeholder} />
-            </View>
+            </ThemedView>
 
             <ThemedView style={styles.content}>
                 <ThemedText style={styles.subtitle}>
@@ -146,8 +143,13 @@ export default function ViewAllScreen() {
                     numColumns={2}
                     columnWrapperStyle={styles.row}
                     showsVerticalScrollIndicator={false}
-                    refreshing={refreshing}
-                    onRefresh={handleRefresh}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={handleRefresh}
+                            tintColor={Colors[colorScheme ?? 'light'].primary}
+                        />
+                    }
                     onEndReached={handleLoadMore}
                     onEndReachedThreshold={0.5}
                     ListFooterComponent={renderLoadingFooter}
@@ -166,11 +168,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 15,
-        paddingVertical: 5,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
     },
     backButton: {
-        padding: 8,
+        padding: 4,
     },
     headerTitle: {
         fontSize: 18,
@@ -179,7 +181,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     placeholder: {
-        width: 40,
+        width: 32,
     },
     content: {
         flex: 1,
@@ -192,17 +194,10 @@ const styles = StyleSheet.create({
     },
     listContainer: {
         paddingBottom: 20,
+        paddingVertical: 4,
     },
     row: {
         justifyContent: 'space-between',
-    },
-    stockItemContainer: {
-        flex: 1,
-        paddingHorizontal: 4,
-        marginBottom: 12,
-    },
-    stockCard: {
-        flex: 1,
     },
     footerLoading: {
         paddingVertical: 20,

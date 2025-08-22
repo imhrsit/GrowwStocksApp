@@ -8,10 +8,11 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 interface StockCardProps {
     stock: Stock;
     onPress?: () => void;
+    onLongPress?: () => void;
     style?: any;
 }
 
-export function StockCard({ stock, onPress, style }: StockCardProps) {
+export function StockCard({ stock, onPress, onLongPress, style }: StockCardProps) {
     const colorScheme = useColorScheme();
     const isPositive = stock.change >= 0;
 
@@ -27,6 +28,7 @@ export function StockCard({ stock, onPress, style }: StockCardProps) {
                 style
             ]}
             onPress={onPress}
+            onLongPress={onLongPress}
             activeOpacity={0.7}
         >
             <View style={styles.header}>
