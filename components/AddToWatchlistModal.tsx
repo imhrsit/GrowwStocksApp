@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import {
     Alert,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     TextInput,
@@ -84,7 +86,11 @@ export const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
             animationType="slide"
             onRequestClose={handleClose}
         >
-            <View style={styles.overlay}>
+            <KeyboardAvoidingView 
+                style={styles.overlay}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            >
                 <ThemedView style={[
                     styles.container,
                     { backgroundColor: Colors[colorScheme ?? 'light'].cardBackground }
@@ -191,7 +197,6 @@ export const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
                                         placeholderTextColor={Colors[colorScheme ?? 'light'].icon}
                                         value={newWatchlistName}
                                         onChangeText={setNewWatchlistName}
-                                        autoFocus
                                     />
                                 </View>
                             )}
@@ -210,7 +215,7 @@ export const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
                         </TouchableOpacity>
                     </View>
                 </ThemedView>
-            </View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 };
@@ -225,6 +230,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         maxHeight: '80%',
+        minHeight: '50%',
     },
     header: {
         flexDirection: 'row',
@@ -243,8 +249,9 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     content: {
-        flex: 1,
         paddingHorizontal: 20,
+        minHeight: 200,
+        flex: 1,
     },
     section: {
         paddingVertical: 20,

@@ -111,6 +111,37 @@ export default function WatchlistDetailsScreen() {
         );
     };
 
+    const deleteWatchlist = async () => {
+        try {
+            const storedWatchlists = await AsyncStorage.getItem('watchlists');
+            if (storedWatchlists) {
+                const watchlists: Watchlist[] = JSON.parse(storedWatchlists);
+                const updatedWatchlists = watchlists.filter(w => w.id !== watchlistId);
+                
+                await AsyncStorage.setItem('watchlists', JSON.stringify(updatedWatchlists));
+                router.back();
+            }
+        } catch (error) {
+            console.error('Error deleting watchlist:', error);
+            Alert.alert('Error', 'Failed to delete watchlist');
+        }
+    };
+
+    const handleDeleteWatchlist = () => {
+        Alert.alert(
+            'Delete Watchlist',
+            `Are you sure you want to delete "${watchlistName}"? This action cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                    text: 'Delete', 
+                    style: 'destructive', 
+                    onPress: deleteWatchlist 
+                }
+            ]
+        );
+    };
+
     const renderStockItem = ({ item }: { item: Stock }) => (
         <View style={styles.stockItemContainer}>
             <StockCard 
@@ -164,7 +195,9 @@ export default function WatchlistDetailsScreen() {
                         <IconSymbol name="chevron.left" size={24} color={Colors[colorScheme ?? 'light'].text} />
                     </TouchableOpacity>
                     <ThemedText style={styles.headerTitle}>{watchlistName}</ThemedText>
-                    <View style={styles.placeholder} />
+                    <TouchableOpacity onPress={handleDeleteWatchlist} style={styles.deleteButton}>
+                        <IconSymbol name="trash" size={20} color="#EF4444" />
+                    </TouchableOpacity>
                 </View>
                 <Loading text="Loading watchlist..." />
             </SafeAreaView>
@@ -178,7 +211,9 @@ export default function WatchlistDetailsScreen() {
                     <IconSymbol name="chevron.left" size={24} color={Colors[colorScheme ?? 'light'].text} />
                 </TouchableOpacity>
                 <ThemedText style={styles.headerTitle}>{watchlistName}</ThemedText>
-                <View style={styles.placeholder} />
+                <TouchableOpacity onPress={handleDeleteWatchlist} style={styles.deleteButton}>
+                    <IconSymbol name="trash" size={20} color="#EF4444" />
+                </TouchableOpacity>
             </View>
 
             <ThemedView style={styles.content}>
@@ -220,6 +255,9 @@ const styles = StyleSheet.create({
         paddingVertical: 5,
     },
     backButton: {
+        padding: 8,
+    },
+    deleteButton: {
         padding: 8,
     },
     headerTitle: {

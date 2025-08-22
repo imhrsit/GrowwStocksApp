@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -61,6 +61,36 @@ export default function WatchlistScreen() {
         await loadWatchlists();
     };
 
+    const deleteWatchlist = async (watchlistId: string) => {
+        try {
+            const storedWatchlists = await AsyncStorage.getItem('watchlists');
+            if (storedWatchlists) {
+                const watchlists: Watchlist[] = JSON.parse(storedWatchlists);
+                const updatedWatchlists = watchlists.filter(w => w.id !== watchlistId);
+                await AsyncStorage.setItem('watchlists', JSON.stringify(updatedWatchlists));
+                setWatchlists(updatedWatchlists);
+            }
+        } catch (error) {
+            console.error('Error deleting watchlist:', error);
+            Alert.alert('Error', 'Failed to delete watchlist');
+        }
+    };
+
+    const handleDeleteWatchlist = (watchlist: Watchlist) => {
+        Alert.alert(
+            'Delete Watchlist',
+            `Are you sure you want to delete "${watchlist.name}"? This action cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                    text: 'Delete', 
+                    style: 'destructive', 
+                    onPress: () => deleteWatchlist(watchlist.id) 
+                }
+            ]
+        );
+    };
+
     const renderEmptyState = () => (
         <ThemedView style={styles.emptyContainer}>
             <IconSymbol name="heart" size={80} color={Colors[colorScheme ?? 'light'].icon} />
@@ -87,6 +117,7 @@ export default function WatchlistScreen() {
                     }
                 });
             }}
+            onLongPress={() => handleDeleteWatchlist(watchlist)}
         >
             <View style={styles.watchlistHeader}>
                 <ThemedText style={styles.watchlistName}>{watchlist.name}</ThemedText>
