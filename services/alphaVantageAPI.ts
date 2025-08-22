@@ -1,11 +1,9 @@
+import { ALPHA_VANTAGE_API_KEY, ALPHA_VANTAGE_BASE_URL, CACHE_EXPIRATION_TIME } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const ALPHA_VANTAGE_API_KEY = '1OWY224R6IDVHF0S';
-const BASE_URL = 'https://www.alphavantage.co/query';
-
-// Cache expiration time (in milliseconds)
-const CACHE_EXPIRATION = 5 * 60 * 1000; // 5 minutes
+// Cache expiration time (in milliseconds) - default to 5 minutes if not set
+const CACHE_EXPIRATION = parseInt(CACHE_EXPIRATION_TIME) || 5 * 60 * 1000;
 
 export interface StockQuote {
     symbol: string;
@@ -92,7 +90,7 @@ class AlphaVantageAPI {
         }
 
         try {
-            const response = await axios.get(BASE_URL, {
+            const response = await axios.get(ALPHA_VANTAGE_BASE_URL, {
                 params: {
                     function: 'TOP_GAINERS_LOSERS',
                     apikey: ALPHA_VANTAGE_API_KEY,
@@ -122,7 +120,7 @@ class AlphaVantageAPI {
         }
 
         try {
-            const response = await axios.get(BASE_URL, {
+            const response = await axios.get(ALPHA_VANTAGE_BASE_URL, {
                 params: {
                     function: 'OVERVIEW',
                     symbol: symbol,
@@ -153,7 +151,7 @@ class AlphaVantageAPI {
         }
 
         try {
-            const response = await axios.get(BASE_URL, {
+            const response = await axios.get(ALPHA_VANTAGE_BASE_URL, {
                 params: {
                     function: 'SYMBOL_SEARCH',
                     keywords: keywords,
@@ -184,7 +182,7 @@ class AlphaVantageAPI {
         }
 
         try {
-            const response = await axios.get(BASE_URL, {
+            const response = await axios.get(ALPHA_VANTAGE_BASE_URL, {
                 params: {
                     function: 'TIME_SERIES_INTRADAY',
                     symbol: symbol,
