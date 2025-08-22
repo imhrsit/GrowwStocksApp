@@ -1,9 +1,9 @@
-import { ALPHA_VANTAGE_API_KEY, ALPHA_VANTAGE_BASE_URL, CACHE_EXPIRATION_TIME } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { ENV } from '../env';
 
 // Cache expiration time (in milliseconds) - default to 5 minutes if not set
-const CACHE_EXPIRATION = parseInt(CACHE_EXPIRATION_TIME) || 5 * 60 * 1000;
+const CACHE_EXPIRATION = ENV.CACHE_EXPIRATION_TIME;
 
 export interface StockQuote {
     symbol: string;
@@ -90,10 +90,10 @@ class AlphaVantageAPI {
         }
 
         try {
-            const response = await axios.get(ALPHA_VANTAGE_BASE_URL, {
+            const response = await axios.get(ENV.ALPHA_VANTAGE_BASE_URL, {
                 params: {
                     function: 'TOP_GAINERS_LOSERS',
-                    apikey: ALPHA_VANTAGE_API_KEY,
+                    apikey: ENV.ALPHA_VANTAGE_API_KEY,
                 },
                 timeout: 10000,
             });
@@ -120,11 +120,11 @@ class AlphaVantageAPI {
         }
 
         try {
-            const response = await axios.get(ALPHA_VANTAGE_BASE_URL, {
+            const response = await axios.get(ENV.ALPHA_VANTAGE_BASE_URL, {
                 params: {
                     function: 'OVERVIEW',
                     symbol: symbol,
-                    apikey: ALPHA_VANTAGE_API_KEY,
+                    apikey: ENV.ALPHA_VANTAGE_API_KEY,
                 },
                 timeout: 10000,
             });
@@ -151,11 +151,11 @@ class AlphaVantageAPI {
         }
 
         try {
-            const response = await axios.get(ALPHA_VANTAGE_BASE_URL, {
+            const response = await axios.get(ENV.ALPHA_VANTAGE_BASE_URL, {
                 params: {
                     function: 'SYMBOL_SEARCH',
                     keywords: keywords,
-                    apikey: ALPHA_VANTAGE_API_KEY,
+                    apikey: ENV.ALPHA_VANTAGE_API_KEY,
                 },
                 timeout: 10000,
             });
@@ -182,12 +182,12 @@ class AlphaVantageAPI {
         }
 
         try {
-            const response = await axios.get(ALPHA_VANTAGE_BASE_URL, {
+            const response = await axios.get(ENV.ALPHA_VANTAGE_BASE_URL, {
                 params: {
                     function: 'TIME_SERIES_INTRADAY',
                     symbol: symbol,
                     interval: interval,
-                    apikey: ALPHA_VANTAGE_API_KEY,
+                    apikey: ENV.ALPHA_VANTAGE_API_KEY,
                 },
                 timeout: 10000,
             });

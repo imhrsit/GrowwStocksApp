@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,10 +29,9 @@ export default function HomeScreen() {
     try {
       const data = await alphaVantageAPI.getTopGainersLosers();
       
-      // Transform API data to our Stock interface
       const gainers = data.top_gainers.slice(0, 4).map(item => ({
         symbol: item.ticker,
-        name: item.ticker, // We'll need to fetch company names separately
+        name: item.ticker,
         price: parseFloat(item.price),
         change: parseFloat(item.change_amount),
         changePercent: parseFloat(item.change_percentage.replace('%', '')),
@@ -66,8 +66,10 @@ export default function HomeScreen() {
     <StockCard 
       stock={item} 
       onPress={() => {
-        // Navigate to stock details - will implement later
-        console.log('Stock pressed:', item.symbol);
+        router.push({
+          pathname: '/stock-details',
+          params: { symbol: item.symbol }
+        });
       }}
     />
   );
@@ -132,11 +134,17 @@ export default function HomeScreen() {
         }
       >
         {renderSection('Top Gainers', topGainers, () => {
-          console.log('View all gainers');
+          router.push({
+            pathname: '/view-all',
+            params: { type: 'gainers', title: 'Top Gainers' }
+          });
         })}
         
         {renderSection('Top Losers', topLosers, () => {
-          console.log('View all losers');
+          router.push({
+            pathname: '/view-all',
+            params: { type: 'losers', title: 'Top Losers' }
+          });
         })}
       </ScrollView>
     </SafeAreaView>

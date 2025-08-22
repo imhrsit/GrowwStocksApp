@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { router } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -27,10 +29,18 @@ export default function WatchlistScreen() {
     const colorScheme = useColorScheme();
     const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         loadWatchlists();
     }, []);
+
+    // Reload watchlists when screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            loadWatchlists();
+        }, [])
+    );
 
     const loadWatchlists = async () => {
         try {
@@ -42,7 +52,13 @@ export default function WatchlistScreen() {
             console.error('Error loading watchlists:', error);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
+    };
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await loadWatchlists();
     };
 
     const renderEmptyState = () => (
@@ -62,6 +78,15 @@ export default function WatchlistScreen() {
                 styles.watchlistItem,
                 { backgroundColor: Colors[colorScheme ?? 'light'].cardBackground }
             ]}
+            onPress={() => {
+                router.push({
+                    pathname: '/watchlist-details',
+                    params: { 
+                        watchlistId: watchlist.id,
+                        watchlistName: watchlist.name 
+                    }
+                });
+            }}
         >
             <View style={styles.watchlistHeader}>
                 <ThemedText style={styles.watchlistName}>{watchlist.name}</ThemedText>
@@ -89,7 +114,17 @@ export default function WatchlistScreen() {
                 <ThemedText type="title">Watchlist</ThemedText>
             </ThemedView>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                style={styles.content} 
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={Colors[colorScheme ?? 'light'].primary}
+                    />
+                }
+            >
                 {watchlists.length === 0 ? (
                     renderEmptyState()
                 ) : (
