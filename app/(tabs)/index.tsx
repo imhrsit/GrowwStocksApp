@@ -1,75 +1,198 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { FlatList, RefreshControl, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { Loading } from '@/components/Loading';
+import { StockCard } from '@/components/StockCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { IconSymbol } from '@/components/ui/IconSymbol';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { alphaVantageAPI } from '@/services/alphaVantageAPI';
+import { Stock } from '@/types';
 
 export default function HomeScreen() {
+  const colorScheme = useColorScheme();
+  const [topGainers, setTopGainers] = useState<Stock[]>([]);
+  const [topLosers, setTopLosers] = useState<Stock[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    loadMarketData();
+  }, []);
+
+  const loadMarketData = async () => {
+    try {
+      const data = await alphaVantageAPI.getTopGainersLosers();
+      
+      // Transform API data to our Stock interface
+      const gainers = data.top_gainers.slice(0, 4).map(item => ({
+        symbol: item.ticker,
+        name: item.ticker, // We'll need to fetch company names separately
+        price: parseFloat(item.price),
+        change: parseFloat(item.change_amount),
+        changePercent: parseFloat(item.change_percentage.replace('%', '')),
+        volume: item.volume,
+      }));
+
+      const losers = data.top_losers.slice(0, 4).map(item => ({
+        symbol: item.ticker,
+        name: item.ticker,
+        price: parseFloat(item.price),
+        change: parseFloat(item.change_amount),
+        changePercent: parseFloat(item.change_percentage.replace('%', '')),
+        volume: item.volume,
+      }));
+
+      setTopGainers(gainers);
+      setTopLosers(losers);
+    } catch (error) {
+      console.error('Error loading market data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadMarketData();
+  };
+
+  const renderStockCard = ({ item }: { item: Stock }) => (
+    <StockCard 
+      stock={item} 
+      onPress={() => {
+        // Navigate to stock details - will implement later
+        console.log('Stock pressed:', item.symbol);
+      }}
+    />
+  );
+
+  const renderSection = (title: string, data: Stock[], onViewAll: () => void) => (
+    <ThemedView style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
+        <TouchableOpacity onPress={onViewAll} style={styles.viewAllButton}>
+          <ThemedText style={[styles.viewAllText, { color: Colors[colorScheme ?? 'light'].primary }]}>
+            View All
+          </ThemedText>
+        </TouchableOpacity>
+      </View>
+      
+      <FlatList
+        data={data}
+        renderItem={renderStockCard}
+        keyExtractor={(item) => item.symbol}
+        numColumns={2}
+        scrollEnabled={false}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.grid}
+      />
+    </ThemedView>
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+        <Loading text="Loading market data..." />
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+      <ThemedView style={styles.header}>
+        <ThemedText type="title">Stocks App</ThemedText>
+        
+        <View style={[styles.searchContainer, { backgroundColor: Colors[colorScheme ?? 'light'].cardBackground }]}>
+          <IconSymbol name="magnifyingglass" size={20} color={Colors[colorScheme ?? 'light'].icon} />
+          <TextInput
+            style={[styles.searchInput, { color: Colors[colorScheme ?? 'light'].text }]}
+            placeholder="Search here..."
+            placeholderTextColor={Colors[colorScheme ?? 'light'].icon}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+
+      <ScrollView 
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors[colorScheme ?? 'light'].primary}
+          />
+        }
+      >
+        {renderSection('Top Gainers', topGainers, () => {
+          console.log('View all gainers');
+        })}
+        
+        {renderSection('Top Losers', topLosers, () => {
+          console.log('View all losers');
+        })}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginTop: 12,
     gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 4,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  viewAllButton: {
+    padding: 4,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  grid: {
+    paddingVertical: 4,
+  },
+  row: {
+    justifyContent: 'space-between',
   },
 });
