@@ -1,18 +1,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddToWatchlistModal } from '@/components/AddToWatchlistModal';
 import { Loading } from '@/components/Loading';
+import { NewsCard } from '@/components/NewsCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { alphaVantageAPI, CompanyOverview } from '@/services/alphaVantageAPI';
+import { alphaVantageAPI, CompanyOverview, GlobalQuote, NewsArticle } from '@/services/alphaVantageAPI';
 
 interface ChartData {
     labels: string[];
@@ -37,68 +38,133 @@ interface StockPriceData {
     changePercent: number;
 }
 
+interface EarningsData {
+    annualEarnings: any[];
+    quarterlyEarnings: any[];
+}
+
 export default function StockDetailsScreen() {
     const { symbol } = useLocalSearchParams<{ symbol: string }>();
     const colorScheme = useColorScheme();
     const [companyData, setCompanyData] = useState<CompanyOverview | null>(null);
     const [priceData, setPriceData] = useState<StockPriceData | null>(null);
     const [chartData, setChartData] = useState<ChartData | null>(null);
+    const [earningsData, setEarningsData] = useState<EarningsData | null>(null);
+    const [globalQuote, setGlobalQuote] = useState<GlobalQuote | null>(null);
     const [loading, setLoading] = useState(true);
     const [isInWatchlist, setIsInWatchlist] = useState(false);
     const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
     const [showWatchlistModal, setShowWatchlistModal] = useState(false);
+    const [news, setNews] = useState<NewsArticle[]>([]);
+    const [newsLoading, setNewsLoading] = useState(false);
 
     useEffect(() => {
         if (symbol) {
             loadStockData();
             checkWatchlistStatus();
             loadWatchlists();
+            loadNews();
         }
     }, [symbol]);
+
+    const loadNews = async () => {
+        if (!symbol) return;
+
+        try {
+            setNewsLoading(true);
+            const newsResponse = await alphaVantageAPI.getNews([symbol], undefined, 10);
+            setNews(newsResponse.feed || []);
+        } catch (error) {
+            console.error('Error loading news:', error);
+        } finally {
+            setNewsLoading(false);
+        }
+    };
 
     const loadStockData = async () => {
         if (!symbol) return;
 
         try {
             setLoading(true);
-            
-            // Load company overview
-            const overview = await alphaVantageAPI.getCompanyOverview(symbol);
-            setCompanyData(overview);
 
-            // Load chart data
-            const timeSeriesData = await alphaVantageAPI.getIntradayData(symbol, '60min');
-            
-            if (timeSeriesData && timeSeriesData['Time Series (60min)']) {
-                const timeSeries = timeSeriesData['Time Series (60min)'];
+            // Load multiple data sources in parallel
+            const [overview, timeSeriesData, quote, earnings] = await Promise.allSettled([
+                alphaVantageAPI.getCompanyOverview(symbol),
+                alphaVantageAPI.getIntradayData(symbol, '60min'),
+                alphaVantageAPI.getGlobalQuote(symbol),
+                alphaVantageAPI.getEarnings(symbol)
+            ]);
+
+            // Set company overview
+            if (overview.status === 'fulfilled') {
+                setCompanyData(overview.value);
+            }
+
+            // Set global quote for real-time price, with checks for missing fields
+            if (quote.status === 'fulfilled' && quote.value && quote.value['05. price'] !== undefined) {
+                setGlobalQuote(quote.value);
+
+                const priceStr = quote.value['05. price'];
+                const changeStr = quote.value['09. change'];
+                const changePercentStr = quote.value['10. change percent'];
+
+                const currentPrice = priceStr !== undefined ? parseFloat(priceStr) : 0;
+                const change = changeStr !== undefined ? parseFloat(changeStr) : 0;
+                const changePercent = (changePercentStr && typeof changePercentStr === 'string')
+                    ? parseFloat(changePercentStr.replace('%', ''))
+                    : 0;
+
+                setPriceData({
+                    price: currentPrice,
+                    change: change,
+                    changePercent: changePercent
+                });
+            }
+
+            // Set earnings data
+            if (earnings.status === 'fulfilled') {
+                setEarningsData({
+                    annualEarnings: earnings.value?.annualEarnings || [],
+                    quarterlyEarnings: earnings.value?.quarterlyEarnings || []
+                });
+            }
+
+            // Set chart data from intraday
+            if (timeSeriesData.status === 'fulfilled' && timeSeriesData.value && timeSeriesData.value['Time Series (60min)']) {
+                const timeSeries = timeSeriesData.value['Time Series (60min)'];
                 const entries = Object.entries(timeSeries).slice(0, 20).reverse();
-                
-                // Extract current price data from the latest entry
-                if (entries.length > 0) {
+
+                // Fallback price data if global quote failed
+                if ((!priceData || priceData.price === 0) && entries.length > 0) {
                     const latestData = entries[entries.length - 1][1] as any;
-                    const currentPrice = parseFloat(latestData['4. close']);
-                    const openPrice = parseFloat(latestData['1. open']);
+                    const closeStr = latestData['4. close'];
+                    const openStr = latestData['1. open'];
+                    const currentPrice = closeStr !== undefined ? parseFloat(closeStr) : 0;
+                    const openPrice = openStr !== undefined ? parseFloat(openStr) : 0;
                     const change = currentPrice - openPrice;
-                    const changePercent = (change / openPrice) * 100;
-                    
+                    const changePercent = openPrice !== 0 ? (change / openPrice) * 100 : 0;
+
                     setPriceData({
                         price: currentPrice,
                         change: change,
                         changePercent: changePercent
                     });
                 }
-                
+
                 const chartData: ChartData = {
-                    labels: entries.map(([time]) => time.split(' ')[1].substring(0, 5)),
+                    labels: entries.map(([time]) => time.split(' ')[1]?.substring(0, 5) || ''),
                     datasets: [
                         {
-                            data: entries.map(([, data]) => parseFloat((data as any)['4. close'])),
+                            data: entries.map(([, data]) => {
+                                const close = (data as any)['4. close'];
+                                return close !== undefined ? parseFloat(close) : 0;
+                            }),
                             color: (opacity = 1) => Colors[colorScheme ?? 'light'].primary,
                             strokeWidth: 2,
                         },
                     ],
                 };
-                
+
                 setChartData(chartData);
             }
         } catch (error) {
@@ -318,7 +384,61 @@ export default function StockDetailsScreen() {
                                 ${companyData['52WeekLow'] || 'N/A'}
                             </ThemedText>
                         </View>
+                        <View style={styles.metricItem}>
+                            <ThemedText style={styles.metricLabel}>Dividend Yield</ThemedText>
+                            <ThemedText style={styles.metricValue}>
+                                {companyData.DividendYield ? `${(parseFloat(companyData.DividendYield) * 100).toFixed(2)}%` : 'N/A'}
+                            </ThemedText>
+                        </View>
+                        <View style={styles.metricItem}>
+                            <ThemedText style={styles.metricLabel}>Industry</ThemedText>
+                            <ThemedText style={styles.metricValue}>
+                                {companyData.Industry || 'N/A'}
+                            </ThemedText>
+                        </View>
                     </View>
+                </ThemedView>
+
+                {/* Earnings Data */}
+                {earningsData && earningsData.quarterlyEarnings && earningsData.quarterlyEarnings.length > 0 && (
+                    <ThemedView style={styles.earningsContainer}>
+                        <ThemedText style={styles.sectionTitle}>Recent Earnings</ThemedText>
+                        <View style={styles.earningsGrid}>
+                            {earningsData.quarterlyEarnings.slice(0, 4).map((earnings: any, index: number) => (
+                                <View key={index} style={styles.earningsItem}>
+                                    <ThemedText style={styles.earningsQuarter}>
+                                        {earnings.fiscalDateEnding || 'N/A'}
+                                    </ThemedText>
+                                    <ThemedText style={styles.earningsEPS}>
+                                        EPS: ${earnings.reportedEPS || 'N/A'}
+                                    </ThemedText>
+                                    <ThemedText style={styles.earningsRevenue}>
+                                        Revenue: ${earnings.totalRevenue ? (parseFloat(earnings.totalRevenue) / 1000000).toFixed(0) + 'M' : 'N/A'}
+                                    </ThemedText>
+                                </View>
+                            ))}
+                        </View>
+                    </ThemedView>
+                )}
+
+                {/* Stock News */}
+                <ThemedView style={styles.newsContainer}>
+                    <ThemedText style={styles.sectionTitle}>Latest News</ThemedText>
+                    {newsLoading ? (
+                        <View style={styles.newsLoadingContainer}>
+                            <Loading text="Loading news..." />
+                        </View>
+                    ) : news.length > 0 ? (
+                        <FlatList
+                            data={news.slice(0, 5)}
+                            keyExtractor={(item, index) => index.toString()}
+                            renderItem={({ item }) => <NewsCard article={item} compact={true} />}
+                            scrollEnabled={false}
+                            showsVerticalScrollIndicator={false}
+                        />
+                    ) : (
+                        <ThemedText style={styles.noNewsText}>No recent news available</ThemedText>
+                    )}
                 </ThemedView>
 
                 {/* About Company */}
@@ -466,5 +586,50 @@ const styles = StyleSheet.create({
         lineHeight: 20,
         marginTop: 12,
         opacity: 0.8,
+    },
+    earningsContainer: {
+        paddingVertical: 20,
+        marginBottom: 20,
+    },
+    earningsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+    },
+    earningsItem: {
+        flex: 1,
+        minWidth: '45%',
+        padding: 12,
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        borderRadius: 8,
+    },
+    earningsQuarter: {
+        fontSize: 12,
+        fontWeight: '600',
+        marginBottom: 4,
+        opacity: 0.8,
+    },
+    earningsEPS: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 2,
+    },
+    earningsRevenue: {
+        fontSize: 12,
+        opacity: 0.7,
+    },
+    newsContainer: {
+        paddingVertical: 20,
+        marginBottom: 40,
+    },
+    newsLoadingContainer: {
+        paddingVertical: 20,
+        alignItems: 'center',
+    },
+    noNewsText: {
+        fontSize: 14,
+        opacity: 0.6,
+        textAlign: 'center',
+        paddingVertical: 20,
     },
 });

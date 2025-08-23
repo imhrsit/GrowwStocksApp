@@ -4,6 +4,7 @@ import { FlatList, RefreshControl, ScrollView, StyleSheet, TextInput, TouchableO
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Loading } from '@/components/Loading';
+import { MarketStatus } from '@/components/MarketStatus';
 import { StockCard } from '@/components/StockCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -200,6 +201,8 @@ export default function HomeScreen() {
           )}
         </View>
       </ThemedView>
+
+      <MarketStatus />
 
       <ScrollView 
         style={styles.content}

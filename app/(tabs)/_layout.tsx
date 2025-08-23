@@ -33,6 +33,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="news"
+        options={{
+          title: 'News',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="newspaper" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="watchlist"
         options={{
           title: 'Watchlist',
