@@ -7,6 +7,7 @@ import { Loading } from '@/components/Loading';
 import { StockCard } from '@/components/StockCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -178,7 +179,10 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
       <ThemedView style={styles.header}>
-        <ThemedText type="title">Stocks App</ThemedText>
+        <View style={styles.titleRow}>
+          <ThemedText type="title">Stocks App</ThemedText>
+          <ThemeToggle />
+        </View>
         
         <View style={[styles.searchContainer, { backgroundColor: Colors[colorScheme ?? 'light'].cardBackground }]}>
           <IconSymbol name="magnifyingglass" size={20} color={Colors[colorScheme ?? 'light'].icon} />
@@ -279,6 +283,12 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   searchContainer: {
     flexDirection: 'row',

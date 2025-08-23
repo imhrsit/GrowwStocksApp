@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -142,7 +143,10 @@ export default function WatchlistScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
             <ThemedView style={styles.header}>
-                <ThemedText type="title">Watchlist</ThemedText>
+                <View style={styles.titleRow}>
+                    <ThemedText type="title">Watchlist</ThemedText>
+                    <ThemeToggle />
+                </View>
             </ThemedView>
 
             {watchlists.length === 0 ? (
@@ -188,6 +192,11 @@ const styles = StyleSheet.create({
     header: {
         paddingHorizontal: 20,
         paddingVertical: 16,
+    },
+    titleRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     content: {
         flex: 1,
