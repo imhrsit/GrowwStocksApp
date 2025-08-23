@@ -36,7 +36,7 @@ export default function TabLayout() {
         name="watchlist"
         options={{
           title: 'Watchlist',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="heart.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="bookmark.fill" color={color} />,
         }}
       />
     </Tabs>

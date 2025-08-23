@@ -226,7 +226,7 @@ export default function StockDetailsScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleWatchlistAction} style={styles.watchlistButton}>
                     <IconSymbol 
-                        name={isInWatchlist ? "heart.fill" : "heart"} 
+                        name={isInWatchlist ? "bookmark.fill" : "bookmark"} 
                         size={24} 
                         color={isInWatchlist ? Colors[colorScheme ?? 'light'].primary : Colors[colorScheme ?? 'light'].text} 
                     />

@@ -93,7 +93,7 @@ export default function WatchlistScreen() {
 
     const renderEmptyState = () => (
         <ThemedView style={styles.emptyContainer}>
-            <IconSymbol name="heart" size={80} color={Colors[colorScheme ?? 'light'].icon} />
+            <IconSymbol name="bookmark" size={80} color={Colors[colorScheme ?? 'light'].icon} />
             <ThemedText style={styles.emptyTitle}>No Watchlists Yet</ThemedText>
             <ThemedText style={styles.emptySubtitle}>
                 Start building your watchlist by adding stocks from the explore screen
@@ -145,25 +145,38 @@ export default function WatchlistScreen() {
                 <ThemedText type="title">Watchlist</ThemedText>
             </ThemedView>
 
-            <ScrollView 
-                style={styles.content} 
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                        tintColor={Colors[colorScheme ?? 'light'].primary}
-                    />
-                }
-            >
-                {watchlists.length === 0 ? (
-                    renderEmptyState()
-                ) : (
+            {watchlists.length === 0 ? (
+                <ScrollView 
+                    style={styles.content} 
+                    contentContainerStyle={styles.emptyScrollContainer}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor={Colors[colorScheme ?? 'light'].primary}
+                        />
+                    }
+                >
+                    {renderEmptyState()}
+                </ScrollView>
+            ) : (
+                <ScrollView 
+                    style={styles.content} 
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor={Colors[colorScheme ?? 'light'].primary}
+                        />
+                    }
+                >
                     <View style={styles.watchlistsContainer}>
                         {watchlists.map(renderWatchlistItem)}
                     </View>
-                )}
-            </ScrollView>
+                </ScrollView>
+            )}
         </SafeAreaView>
     );
 }
@@ -184,6 +197,12 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    emptyScrollContainer: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        minHeight: '80%',
+        paddingBottom: 70,
     },
     emptyContainer: {
         flex: 1,
