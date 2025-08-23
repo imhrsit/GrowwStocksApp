@@ -16,21 +16,32 @@ import { Stock } from '@/types';
 export default function ViewAllScreen() {
     const { type, title } = useLocalSearchParams<{ type: string; title: string }>();
     const colorScheme = useColorScheme();
-    const [stocks, setStocks] = useState<Stock[]>([]);
+    const [allStocks, setAllStocks] = useState<Stock[]>([]);
+    const [displayedStocks, setDisplayedStocks] = useState<Stock[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+    
+    const ITEMS_PER_PAGE = 20;
 
     useEffect(() => {
         loadStocks();
     }, [type]);
 
-    const loadStocks = async (pageNum = 1, append = false) => {
+    useEffect(() => {
+        // Update displayed stocks when page changes
+        const startIndex = 0;
+        const endIndex = page * ITEMS_PER_PAGE;
+        const newDisplayedStocks = allStocks.slice(startIndex, endIndex);
+        setDisplayedStocks(newDisplayedStocks);
+        setHasMore(endIndex < allStocks.length);
+    }, [allStocks, page]);
+
+    const loadStocks = async () => {
         try {
-            if (!append) {
-                setLoading(true);
-            }
+            setLoading(true);
 
             const data = await alphaVantageAPI.getTopGainersLosers();
             
@@ -54,16 +65,19 @@ export default function ViewAllScreen() {
                     changePercent: parseFloat(item.change_percentage.replace('%', '')),
                     volume: item.volume,
                 }));
+            } else if (type === 'active') {
+                stockData = data.most_actively_traded.map(item => ({
+                    symbol: item.ticker,
+                    name: item.ticker,
+                    price: parseFloat(item.price),
+                    change: parseFloat(item.change_amount),
+                    changePercent: parseFloat(item.change_percentage.replace('%', '')),
+                    volume: item.volume,
+                }));
             }
 
-            if (append) {
-                setStocks(prev => [...prev, ...stockData]);
-            } else {
-                setStocks(stockData);
-            }
-
-            setHasMore(false);
-            setPage(pageNum);
+            setAllStocks(stockData);
+            setPage(1); // Reset to first page
         } catch (error) {
             console.error('Error loading stocks:', error);
         } finally {
@@ -75,12 +89,15 @@ export default function ViewAllScreen() {
     const handleRefresh = () => {
         setRefreshing(true);
         setPage(1);
-        loadStocks(1, false);
+        loadStocks();
     };
 
     const handleLoadMore = () => {
-        if (hasMore && !loading) {
-            loadStocks(page + 1, true);
+        if (hasMore && !loadingMore) {
+            setLoadingMore(true);
+            setPage(prevPage => prevPage + 1);
+            // Small delay to show loading state
+            setTimeout(() => setLoadingMore(false), 300);
         }
     };
 
@@ -97,16 +114,24 @@ export default function ViewAllScreen() {
     );
 
     const renderLoadingFooter = () => {
-        if (!hasMore || !loading) return null;
+        if (!loadingMore && !hasMore) return null;
         
         return (
             <View style={styles.footerLoading}>
-                <Loading text="Loading more..." />
+                {loadingMore ? (
+                    <Loading text="Loading more..." />
+                ) : hasMore ? (
+                    <TouchableOpacity onPress={handleLoadMore} style={styles.loadMoreButton}>
+                        <ThemedText style={[styles.loadMoreText, { color: Colors[colorScheme ?? 'light'].primary }]}>
+                            Load More ({allStocks.length - displayedStocks.length} remaining)
+                        </ThemedText>
+                    </TouchableOpacity>
+                ) : null}
             </View>
         );
     };
 
-    if (loading && stocks.length === 0) {
+    if (loading && displayedStocks.length === 0) {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
                 <ThemedView style={styles.header}>
@@ -133,11 +158,11 @@ export default function ViewAllScreen() {
 
             <ThemedView style={styles.content}>
                 <ThemedText style={styles.subtitle}>
-                    {stocks.length} stocks • Updated now
+                    {displayedStocks.length} of {allStocks.length} stocks • Updated now
                 </ThemedText>
 
                 <FlatList
-                    data={stocks}
+                    data={displayedStocks}
                     renderItem={renderStockItem}
                     keyExtractor={(item) => item.symbol}
                     numColumns={2}
@@ -202,5 +227,18 @@ const styles = StyleSheet.create({
     footerLoading: {
         paddingVertical: 20,
         alignItems: 'center',
+    },
+    loadMoreButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 179, 134, 0.3)',
+        backgroundColor: 'rgba(0, 179, 134, 0.1)',
+    },
+    loadMoreText: {
+        fontSize: 14,
+        fontWeight: '600',
+        textAlign: 'center',
     },
 });

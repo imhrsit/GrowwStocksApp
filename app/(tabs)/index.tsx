@@ -17,6 +17,7 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const [topGainers, setTopGainers] = useState<Stock[]>([]);
   const [topLosers, setTopLosers] = useState<Stock[]>([]);
+  const [mostActive, setMostActive] = useState<Stock[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,8 +64,18 @@ export default function HomeScreen() {
         volume: item.volume,
       }));
 
+      const active = data.most_actively_traded.slice(0, 4).map(item => ({
+        symbol: item.ticker,
+        name: item.ticker,
+        price: parseFloat(item.price),
+        change: parseFloat(item.change_amount),
+        changePercent: parseFloat(item.change_percentage.replace('%', '')),
+        volume: item.volume,
+      }));
+
       setTopGainers(gainers);
       setTopLosers(losers);
+      setMostActive(active);
     } catch (error) {
       console.error('Error loading market data:', error);
     } finally {
@@ -188,6 +199,7 @@ export default function HomeScreen() {
 
       <ScrollView 
         style={styles.content}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -246,6 +258,13 @@ export default function HomeScreen() {
                 params: { type: 'losers', title: 'Top Losers' }
               });
             })}
+
+            {renderSection('Most Active', mostActive, () => {
+              router.push({
+                pathname: '/view-all',
+                params: { type: 'active', title: 'Most Active' }
+              });
+            })}
           </>
         )}
       </ScrollView>
@@ -281,6 +300,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
+  },
+  scrollContent: {
+    paddingBottom: 40,
   },
   section: {
     marginBottom: 24,
