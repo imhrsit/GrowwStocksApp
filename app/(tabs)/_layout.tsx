@@ -25,27 +25,34 @@ export default function TabLayout() {
           default: {},
         }),
       }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.line.uptrend.xyaxis" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="news"
-        options={{
-          title: 'News',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="newspaper" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="watchlist"
-        options={{
-          title: 'Watchlist',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="bookmark.fill" color={color} />,
-        }}
-      />
+          <Tabs.Screen
+            name="index"
+            options={{
+              title: 'Home',
+              tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.line.uptrend.xyaxis" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="favorites"
+            options={{
+              title: 'Favorites',
+              tabBarIcon: ({ color }) => <IconSymbol size={28} name="star.fill" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="news"
+            options={{
+              title: 'News',
+              tabBarIcon: ({ color }) => <IconSymbol size={28} name="newspaper" color={color} />,
+            }}
+          />
+          <Tabs.Screen
+            name="watchlist"
+            options={{
+              title: 'Watchlist',
+              tabBarIcon: ({ color }) => <IconSymbol size={28} name="bookmark.fill" color={color} />,
+            }}
+          />
     </Tabs>
   );
 }

@@ -57,6 +57,8 @@ export default function StockDetailsScreen() {
     const [showWatchlistModal, setShowWatchlistModal] = useState(false);
     const [news, setNews] = useState<NewsArticle[]>([]);
     const [newsLoading, setNewsLoading] = useState(false);
+    // Favorites/bookmarks
+    const [isFavorite, setIsFavorite] = useState(false);
 
     useEffect(() => {
         if (symbol) {
@@ -64,8 +66,41 @@ export default function StockDetailsScreen() {
             checkWatchlistStatus();
             loadWatchlists();
             loadNews();
+            checkFavoriteStatus();
         }
     }, [symbol]);
+
+    // Check if this stock is in favorites
+    const checkFavoriteStatus = async () => {
+        try {
+            const storedFavorites = await AsyncStorage.getItem('favorites');
+            if (storedFavorites && symbol) {
+                const favorites: string[] = JSON.parse(storedFavorites);
+                setIsFavorite(favorites.includes(symbol));
+            } else {
+                setIsFavorite(false);
+            }
+        } catch (error) {
+            setIsFavorite(false);
+        }
+    };
+
+    // Toggle favorite status
+    const handleFavoriteToggle = async () => {
+        try {
+            const storedFavorites = await AsyncStorage.getItem('favorites');
+            let favorites: string[] = storedFavorites ? JSON.parse(storedFavorites) : [];
+            if (isFavorite) {
+                favorites = favorites.filter(fav => fav !== symbol);
+            } else {
+                if (!favorites.includes(symbol!)) favorites.push(symbol!);
+            }
+            await AsyncStorage.setItem('favorites', JSON.stringify(favorites));
+            setIsFavorite(!isFavorite);
+        } catch (error) {
+            Alert.alert('Error', 'Failed to update favorites');
+        }
+    };
 
     const loadNews = async () => {
         if (!symbol) return;
@@ -285,18 +320,27 @@ export default function StockDetailsScreen() {
     const isPositive = priceChange >= 0;
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}> 
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <IconSymbol name="chevron.left" size={24} color={Colors[colorScheme ?? 'light'].text} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleWatchlistAction} style={styles.watchlistButton}>
-                    <IconSymbol 
-                        name={isInWatchlist ? "bookmark.fill" : "bookmark"} 
-                        size={24} 
-                        color={isInWatchlist ? Colors[colorScheme ?? 'light'].primary : Colors[colorScheme ?? 'light'].text} 
-                    />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={handleFavoriteToggle} style={styles.favoriteButton}>
+                        <IconSymbol 
+                            name={isFavorite ? "star.fill" : "star"}
+                            size={24}
+                            color={isFavorite ? Colors[colorScheme ?? 'light'].warning : Colors[colorScheme ?? 'light'].icon}
+                        />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleWatchlistAction} style={styles.watchlistButton}>
+                        <IconSymbol 
+                            name={isInWatchlist ? "bookmark.fill" : "bookmark"} 
+                            size={24} 
+                            color={isInWatchlist ? Colors[colorScheme ?? 'light'].primary : Colors[colorScheme ?? 'light'].text} 
+                        />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -487,6 +531,10 @@ const styles = StyleSheet.create({
     },
     watchlistButton: {
         padding: 8,
+    },
+    favoriteButton: {
+        padding: 8,
+        marginRight: 2,
     },
     content: {
         flex: 1,
