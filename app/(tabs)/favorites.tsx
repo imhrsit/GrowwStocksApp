@@ -3,6 +3,7 @@ import { StockCard } from '@/components/StockCard';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { alphaVantageAPI, CompanyOverview } from '@/services/alphaVantageAPI';
@@ -70,10 +71,17 @@ export default function FavoritesScreen() {
       </ThemedView>
       {favorites.length === 0 && !loading ? (
         <FlatList
+          key="empty-list"
           data={[]}
           renderItem={() => null}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
+              <IconSymbol 
+                name="star.fill" 
+                size={64} 
+                color={Colors[colorScheme ?? 'light'].tabIconDefault}
+                style={styles.emptyIcon}
+              />
               <ThemedText style={styles.emptyTitle}>No Favorites Yet</ThemedText>
               <ThemedText style={styles.emptySubtitle}>
                 Tap the star on a stock to add it here for quick access
@@ -91,6 +99,7 @@ export default function FavoritesScreen() {
         />
       ) : (
         <FlatList
+          key="stocks-list"
           data={stocks}
           renderItem={({ item }) => (
             <StockCard
@@ -145,6 +154,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 60,
+  },
+  emptyIcon: {
+    marginBottom: 16,
   },
   emptyTitle: {
     fontSize: 18,
