@@ -43,6 +43,8 @@ interface EarningsData {
     quarterlyEarnings: any[];
 }
 
+type TimeFilter = '1H' | '1Y' | '3Y' | '5Y' | '10Y';
+
 export default function StockDetailsScreen() {
     const { symbol } = useLocalSearchParams<{ symbol: string }>();
     const colorScheme = useColorScheme();
@@ -52,11 +54,13 @@ export default function StockDetailsScreen() {
     const [earningsData, setEarningsData] = useState<EarningsData | null>(null);
     const [globalQuote, setGlobalQuote] = useState<GlobalQuote | null>(null);
     const [loading, setLoading] = useState(true);
+    const [chartLoading, setChartLoading] = useState(false);
     const [isInWatchlist, setIsInWatchlist] = useState(false);
     const [watchlists, setWatchlists] = useState<Watchlist[]>([]);
     const [showWatchlistModal, setShowWatchlistModal] = useState(false);
     const [news, setNews] = useState<NewsArticle[]>([]);
     const [newsLoading, setNewsLoading] = useState(false);
+    const [selectedTimeFilter, setSelectedTimeFilter] = useState<TimeFilter>('1H');
     // Favorites/bookmarks
     const [isFavorite, setIsFavorite] = useState(false);
 
@@ -69,6 +73,103 @@ export default function StockDetailsScreen() {
             checkFavoriteStatus();
         }
     }, [symbol]);
+
+    useEffect(() => {
+        if (symbol && companyData) {
+            loadChartData(selectedTimeFilter);
+        }
+    }, [selectedTimeFilter]);
+
+    const loadChartData = async (timeFilter: TimeFilter) => {
+        if (!symbol) return;
+
+        try {
+            setChartLoading(true);
+
+            let timeSeriesData;
+            let dataKey;
+            let labelFormat;
+            let dataLimit;
+
+            switch (timeFilter) {
+                case '1H':
+                    timeSeriesData = await alphaVantageAPI.getIntradayData(symbol, '60min');
+                    dataKey = 'Time Series (60min)';
+                    labelFormat = (time: string) => time.split(' ')[1]?.substring(0, 5) || '';
+                    dataLimit = 20;
+                    break;
+                case '1Y':
+                    timeSeriesData = await alphaVantageAPI.getDailyData(symbol);
+                    dataKey = 'Time Series (Daily)';
+                    labelFormat = (time: string) => {
+                        const date = new Date(time);
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                    };
+                    dataLimit = 250; // ~1 year of trading days
+                    break;
+                case '3Y':
+                    timeSeriesData = await alphaVantageAPI.getWeeklyData(symbol);
+                    dataKey = 'Weekly Time Series';
+                    labelFormat = (time: string) => {
+                        const date = new Date(time);
+                        return `${date.getMonth() + 1}/${date.getFullYear().toString().slice(-2)}`;
+                    };
+                    dataLimit = 156; // ~3 years of weeks
+                    break;
+                case '5Y':
+                    timeSeriesData = await alphaVantageAPI.getWeeklyData(symbol);
+                    dataKey = 'Weekly Time Series';
+                    labelFormat = (time: string) => {
+                        const date = new Date(time);
+                        return `${date.getMonth() + 1}/${date.getFullYear().toString().slice(-2)}`;
+                    };
+                    dataLimit = 260; // ~5 years of weeks
+                    break;
+                case '10Y':
+                    timeSeriesData = await alphaVantageAPI.getMonthlyData(symbol);
+                    dataKey = 'Monthly Time Series';
+                    labelFormat = (time: string) => {
+                        const date = new Date(time);
+                        return `${date.getMonth() + 1}/${date.getFullYear().toString().slice(-2)}`;
+                    };
+                    dataLimit = 120; // 10 years of months
+                    break;
+                default:
+                    return;
+            }
+
+            if (timeSeriesData && timeSeriesData[dataKey]) {
+                const timeSeries = timeSeriesData[dataKey];
+                const entries = Object.entries(timeSeries).slice(0, dataLimit).reverse();
+
+                // Calculate how many labels to show to prevent overlap
+                const labelStep = Math.max(1, Math.floor(entries.length / 6));
+                const labels = entries.map(([time], index) => 
+                    index % labelStep === 0 ? labelFormat(time) : ''
+                );
+
+                const chartData: ChartData = {
+                    labels,
+                    datasets: [
+                        {
+                            data: entries.map(([, data]) => {
+                                const close = (data as any)['4. close'];
+                                return close !== undefined ? parseFloat(close) : 0;
+                            }),
+                            color: (opacity = 1) => Colors[colorScheme ?? 'light'].primary,
+                            strokeWidth: 2,
+                        },
+                    ],
+                };
+
+                setChartData(chartData);
+            }
+        } catch (error) {
+            console.error('Error loading chart data:', error);
+        } finally {
+            setChartLoading(false);
+        }
+    };
 
     // Check if this stock is in favorites
     const checkFavoriteStatus = async () => {
@@ -123,9 +224,8 @@ export default function StockDetailsScreen() {
             setLoading(true);
 
             // Load multiple data sources in parallel
-            const [overview, timeSeriesData, quote, earnings] = await Promise.allSettled([
+            const [overview, quote, earnings] = await Promise.allSettled([
                 alphaVantageAPI.getCompanyOverview(symbol),
-                alphaVantageAPI.getIntradayData(symbol, '60min'),
                 alphaVantageAPI.getGlobalQuote(symbol),
                 alphaVantageAPI.getEarnings(symbol)
             ]);
@@ -164,44 +264,6 @@ export default function StockDetailsScreen() {
                 });
             }
 
-            // Set chart data from intraday
-            if (timeSeriesData.status === 'fulfilled' && timeSeriesData.value && timeSeriesData.value['Time Series (60min)']) {
-                const timeSeries = timeSeriesData.value['Time Series (60min)'];
-                const entries = Object.entries(timeSeries).slice(0, 20).reverse();
-
-                // Fallback price data if global quote failed
-                if ((!priceData || priceData.price === 0) && entries.length > 0) {
-                    const latestData = entries[entries.length - 1][1] as any;
-                    const closeStr = latestData['4. close'];
-                    const openStr = latestData['1. open'];
-                    const currentPrice = closeStr !== undefined ? parseFloat(closeStr) : 0;
-                    const openPrice = openStr !== undefined ? parseFloat(openStr) : 0;
-                    const change = currentPrice - openPrice;
-                    const changePercent = openPrice !== 0 ? (change / openPrice) * 100 : 0;
-
-                    setPriceData({
-                        price: currentPrice,
-                        change: change,
-                        changePercent: changePercent
-                    });
-                }
-
-                const chartData: ChartData = {
-                    labels: entries.map(([time]) => time.split(' ')[1]?.substring(0, 5) || ''),
-                    datasets: [
-                        {
-                            data: entries.map(([, data]) => {
-                                const close = (data as any)['4. close'];
-                                return close !== undefined ? parseFloat(close) : 0;
-                            }),
-                            color: (opacity = 1) => Colors[colorScheme ?? 'light'].primary,
-                            strokeWidth: 2,
-                        },
-                    ],
-                };
-
-                setChartData(chartData);
-            }
         } catch (error) {
             console.error('Error loading stock data:', error);
             Alert.alert('Error', 'Failed to load stock data. Please try again.');
@@ -371,34 +433,101 @@ export default function StockDetailsScreen() {
                 </ThemedView>
 
                 {/* Chart */}
-                {chartData && (
-                    <ThemedView style={styles.chartContainer}>
-                        <ThemedText style={styles.sectionTitle}>Price Chart (1H)</ThemedText>
-                        <LineChart
-                            data={chartData}
-                            width={Dimensions.get('window').width - 40}
-                            height={220}
-                            chartConfig={{
-                                backgroundColor: Colors[colorScheme ?? 'light'].cardBackground,
-                                backgroundGradientFrom: Colors[colorScheme ?? 'light'].cardBackground,
-                                backgroundGradientTo: Colors[colorScheme ?? 'light'].cardBackground,
-                                decimalPlaces: 2,
-                                color: (opacity = 1) => Colors[colorScheme ?? 'light'].primary,
-                                labelColor: (opacity = 1) => Colors[colorScheme ?? 'light'].text,
-                                style: {
-                                    borderRadius: 16,
-                                },
-                                propsForDots: {
-                                    r: '3',
-                                    strokeWidth: '2',
-                                    stroke: Colors[colorScheme ?? 'light'].primary,
-                                },
-                            }}
-                            bezier
-                            style={styles.chart}
-                        />
-                    </ThemedView>
-                )}
+                <ThemedView style={styles.chartContainer}>
+                    <ThemedText style={styles.sectionTitle}>Price Chart ({selectedTimeFilter})</ThemedText>
+                    
+                    {chartData ? (
+                        <View style={[styles.chartWrapper, chartLoading && { opacity: 0.5 }]}>
+                            <LineChart
+                                data={chartData}
+                                width={Dimensions.get('window').width - 40}
+                                height={240}
+                                chartConfig={{
+                                    backgroundColor: Colors[colorScheme ?? 'light'].cardBackground,
+                                    backgroundGradientFrom: Colors[colorScheme ?? 'light'].cardBackground,
+                                    backgroundGradientTo: Colors[colorScheme ?? 'light'].cardBackground,
+                                    decimalPlaces: 2,
+                                    color: (opacity = 1) => Colors[colorScheme ?? 'light'].primary,
+                                    labelColor: (opacity = 1) => Colors[colorScheme ?? 'light'].text,
+                                    style: {
+                                        borderRadius: 16,
+                                    },
+                                    propsForDots: {
+                                        r: '3',
+                                        strokeWidth: '2',
+                                        stroke: Colors[colorScheme ?? 'light'].primary,
+                                    },
+                                    propsForLabels: {
+                                        fontSize: 10,
+                                    },
+                                }}
+                                bezier
+                                style={styles.chart}
+                                withHorizontalLabels={true}
+                                withVerticalLabels={true}
+                                withInnerLines={false}
+                                withOuterLines={false}
+                                verticalLabelRotation={0}
+                                horizontalLabelRotation={0}
+                                fromZero={false}
+                            />
+                            
+                            {/* Loading Overlay */}
+                            {chartLoading && (
+                                <View style={styles.chartLoadingOverlay}>
+                                    <View style={styles.chartLoadingIndicator}>
+                                        <Loading text="Updating chart..." />
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+                    ) : !chartLoading ? (
+                        <View style={styles.chartErrorContainer}>
+                            <ThemedText style={styles.chartErrorText}>
+                                Chart data not available
+                            </ThemedText>
+                        </View>
+                    ) : (
+                        <View style={styles.chartLoadingContainer}>
+                            <Loading text="Loading chart..." />
+                        </View>
+                    )}
+                    
+                    {/* Time Filter Buttons */}
+                    <View style={styles.timeFilterContainer}>
+                        {(['1H', '1Y', '3Y', '5Y', '10Y'] as TimeFilter[]).map((filter) => (
+                            <TouchableOpacity
+                                key={filter}
+                                style={[
+                                    styles.timeFilterButton,
+                                    selectedTimeFilter === filter && styles.timeFilterButtonActive,
+                                    { 
+                                        backgroundColor: selectedTimeFilter === filter 
+                                            ? Colors[colorScheme ?? 'light'].primary 
+                                            : 'transparent',
+                                        borderColor: Colors[colorScheme ?? 'light'].primary,
+                                    }
+                                ]}
+                                onPress={() => setSelectedTimeFilter(filter)}
+                                disabled={chartLoading}
+                            >
+                                <ThemedText 
+                                    style={[
+                                        styles.timeFilterButtonText,
+                                        selectedTimeFilter === filter && styles.timeFilterButtonTextActive,
+                                        { 
+                                            color: selectedTimeFilter === filter 
+                                                ? '#FFFFFF'
+                                                : Colors[colorScheme ?? 'light'].primary
+                                        }
+                                    ]}
+                                >
+                                    {filter}
+                                </ThemedText>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </ThemedView>
 
                 {/* Key Metrics */}
                 <ThemedView style={styles.metricsContainer}>
@@ -592,6 +721,33 @@ const styles = StyleSheet.create({
     chart: {
         borderRadius: 16,
     },
+    chartWrapper: {
+        position: 'relative',
+    },
+    chartLoadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        borderRadius: 16,
+    },
+    chartLoadingIndicator: {
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderRadius: 12,
+        padding: 16,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
     metricsContainer: {
         paddingVertical: 20,
         marginBottom: 20,
@@ -679,5 +835,47 @@ const styles = StyleSheet.create({
         opacity: 0.6,
         textAlign: 'center',
         paddingVertical: 20,
+    },
+    chartLoadingContainer: {
+        paddingVertical: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 240,
+    },
+    chartErrorContainer: {
+        paddingVertical: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 240,
+    },
+    chartErrorText: {
+        fontSize: 14,
+        opacity: 0.6,
+        textAlign: 'center',
+    },
+    timeFilterContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 20,
+        gap: 8,
+    },
+    timeFilterButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1.5,
+        minWidth: 50,
+        alignItems: 'center',
+    },
+    timeFilterButtonActive: {
+        // Active styles are handled inline with dynamic colors
+    },
+    timeFilterButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    timeFilterButtonTextActive: {
+        // Active text styles are handled inline with dynamic colors
     },
 });

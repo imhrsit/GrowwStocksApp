@@ -380,6 +380,99 @@ class AlphaVantageAPI {
             throw new Error('Failed to fetch earnings data');
         }
     }
+
+    async getDailyData(symbol: string): Promise<any> {
+        const cacheKey = `daily_${symbol}`;
+
+        // Check cache first
+        const cachedData = await this.getCachedData<any>(cacheKey);
+        if (cachedData) {
+            return cachedData;
+        }
+
+        try {
+            const response = await axios.get(ENV.ALPHA_VANTAGE_BASE_URL, {
+                params: {
+                    function: 'TIME_SERIES_DAILY',
+                    symbol: symbol,
+                    apikey: ENV.ALPHA_VANTAGE_API_KEY,
+                },
+                timeout: 10000,
+            });
+
+            const data = response.data;
+
+            // Cache the response
+            await this.setCachedData(cacheKey, data);
+
+            return data;
+        } catch (error) {
+            console.error('Error fetching daily data:', error);
+            throw new Error('Failed to fetch daily stock data');
+        }
+    }
+
+    async getWeeklyData(symbol: string): Promise<any> {
+        const cacheKey = `weekly_${symbol}`;
+
+        // Check cache first
+        const cachedData = await this.getCachedData<any>(cacheKey);
+        if (cachedData) {
+            return cachedData;
+        }
+
+        try {
+            const response = await axios.get(ENV.ALPHA_VANTAGE_BASE_URL, {
+                params: {
+                    function: 'TIME_SERIES_WEEKLY',
+                    symbol: symbol,
+                    apikey: ENV.ALPHA_VANTAGE_API_KEY,
+                },
+                timeout: 10000,
+            });
+
+            const data = response.data;
+
+            // Cache the response
+            await this.setCachedData(cacheKey, data);
+
+            return data;
+        } catch (error) {
+            console.error('Error fetching weekly data:', error);
+            throw new Error('Failed to fetch weekly stock data');
+        }
+    }
+
+    async getMonthlyData(symbol: string): Promise<any> {
+        const cacheKey = `monthly_${symbol}`;
+
+        // Check cache first
+        const cachedData = await this.getCachedData<any>(cacheKey);
+        if (cachedData) {
+            return cachedData;
+        }
+
+        try {
+            const response = await axios.get(ENV.ALPHA_VANTAGE_BASE_URL, {
+                params: {
+                    function: 'TIME_SERIES_MONTHLY',
+                    symbol: symbol,
+                    apikey: ENV.ALPHA_VANTAGE_API_KEY,
+                },
+                timeout: 10000,
+            });
+
+            const data = response.data;
+
+            // Cache the response
+            await this.setCachedData(cacheKey, data);
+
+            return data;
+        } catch (error) {
+            console.error('Error fetching monthly data:', error);
+            throw new Error('Failed to fetch monthly stock data');
+        }
+    }
 }
 
 export const alphaVantageAPI = new AlphaVantageAPI();
