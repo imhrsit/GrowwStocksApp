@@ -71,6 +71,8 @@ export default function StockDetailsScreen() {
             loadWatchlists();
             loadNews();
             checkFavoriteStatus();
+            // Load initial chart data
+            loadChartData(selectedTimeFilter);
         }
     }, [symbol]);
 
