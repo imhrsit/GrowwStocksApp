@@ -107,7 +107,7 @@ export default function StockDetailsScreen() {
                         const date = new Date(time);
                         return `${date.getMonth() + 1}/${date.getDate()}`;
                     };
-                    dataLimit = 250; // ~1 year of trading days
+                    dataLimit = 250; 
                     break;
                 case '3Y':
                     timeSeriesData = await alphaVantageAPI.getWeeklyData(symbol);
@@ -116,7 +116,7 @@ export default function StockDetailsScreen() {
                         const date = new Date(time);
                         return `${date.getMonth() + 1}/${date.getFullYear().toString().slice(-2)}`;
                     };
-                    dataLimit = 156; // ~3 years of weeks
+                    dataLimit = 156;
                     break;
                 case '5Y':
                     timeSeriesData = await alphaVantageAPI.getWeeklyData(symbol);
@@ -125,7 +125,7 @@ export default function StockDetailsScreen() {
                         const date = new Date(time);
                         return `${date.getMonth() + 1}/${date.getFullYear().toString().slice(-2)}`;
                     };
-                    dataLimit = 260; // ~5 years of weeks
+                    dataLimit = 260;
                     break;
                 case '10Y':
                     timeSeriesData = await alphaVantageAPI.getMonthlyData(symbol);
@@ -134,7 +134,7 @@ export default function StockDetailsScreen() {
                         const date = new Date(time);
                         return `${date.getMonth() + 1}/${date.getFullYear().toString().slice(-2)}`;
                     };
-                    dataLimit = 120; // 10 years of months
+                    dataLimit = 120;
                     break;
                 default:
                     return;
@@ -173,7 +173,6 @@ export default function StockDetailsScreen() {
         }
     };
 
-    // Check if this stock is in favorites
     const checkFavoriteStatus = async () => {
         try {
             const storedFavorites = await AsyncStorage.getItem('favorites');
@@ -188,7 +187,6 @@ export default function StockDetailsScreen() {
         }
     };
 
-    // Toggle favorite status
     const handleFavoriteToggle = async () => {
         try {
             const storedFavorites = await AsyncStorage.getItem('favorites');
@@ -225,19 +223,16 @@ export default function StockDetailsScreen() {
         try {
             setLoading(true);
 
-            // Load multiple data sources in parallel
             const [overview, quote, earnings] = await Promise.allSettled([
                 alphaVantageAPI.getCompanyOverview(symbol),
                 alphaVantageAPI.getGlobalQuote(symbol),
                 alphaVantageAPI.getEarnings(symbol)
             ]);
 
-            // Set company overview
             if (overview.status === 'fulfilled') {
                 setCompanyData(overview.value);
             }
 
-            // Set global quote for real-time price, with checks for missing fields
             if (quote.status === 'fulfilled' && quote.value && quote.value['05. price'] !== undefined) {
                 setGlobalQuote(quote.value);
 
@@ -258,7 +253,6 @@ export default function StockDetailsScreen() {
                 });
             }
 
-            // Set earnings data
             if (earnings.status === 'fulfilled') {
                 setEarningsData({
                     annualEarnings: earnings.value?.annualEarnings || [],
@@ -336,7 +330,6 @@ export default function StockDetailsScreen() {
         try {
             let updatedWatchlists = [...watchlists];
 
-            // Create new watchlist if provided
             if (newWatchlistName) {
                 const newWatchlist: Watchlist = {
                     id: Date.now().toString(),
@@ -346,7 +339,6 @@ export default function StockDetailsScreen() {
                 updatedWatchlists.push(newWatchlist);
             }
 
-            // Add to selected existing watchlists
             selectedWatchlistIds.forEach(watchlistId => {
                 const watchlist = updatedWatchlists.find(w => w.id === watchlistId);
                 if (watchlist && !watchlist.stocks.includes(symbol!)) {
@@ -871,13 +863,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     timeFilterButtonActive: {
-        // Active styles are handled inline with dynamic colors
     },
     timeFilterButtonText: {
         fontSize: 14,
         fontWeight: '600',
     },
     timeFilterButtonTextActive: {
-        // Active text styles are handled inline with dynamic colors
     },
 });

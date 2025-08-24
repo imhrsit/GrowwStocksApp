@@ -31,7 +31,6 @@ export default function ViewAllScreen() {
     }, [type]);
 
     useEffect(() => {
-        // Update displayed stocks when page changes
         const startIndex = 0;
         const endIndex = page * ITEMS_PER_PAGE;
         const newDisplayedStocks = allStocks.slice(startIndex, endIndex);
@@ -77,7 +76,7 @@ export default function ViewAllScreen() {
             }
 
             setAllStocks(stockData);
-            setPage(1); // Reset to first page
+            setPage(1);
         } catch (error) {
             console.error('Error loading stocks:', error);
         } finally {
@@ -96,7 +95,6 @@ export default function ViewAllScreen() {
         if (hasMore && !loadingMore) {
             setLoadingMore(true);
             setPage(prevPage => prevPage + 1);
-            // Small delay to show loading state
             setTimeout(() => setLoadingMore(false), 300);
         }
     };

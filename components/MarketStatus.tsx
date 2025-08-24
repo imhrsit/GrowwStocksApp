@@ -45,7 +45,6 @@ export function MarketStatus() {
         return null;
     }
 
-    // Find US market data
     const usMarket = marketData.markets?.find(market => 
         market.region === 'United States' && market.market_type === 'Equity'
     );

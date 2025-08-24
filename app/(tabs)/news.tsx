@@ -45,7 +45,7 @@ export default function NewsScreen() {
             
             const selectedCategoryData = categories.find(cat => cat.key === selectedCategory);
             const newsData = await alphaVantageAPI.getNews(
-                undefined, // No specific tickers for general news
+                undefined,
                 selectedCategoryData?.topics,
                 20
             );

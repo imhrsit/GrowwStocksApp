@@ -26,7 +26,6 @@ export default function FavoritesScreen() {
     loadFavorites();
   }, []);
 
-  // Reload favorites when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       loadFavorites();
@@ -40,7 +39,6 @@ export default function FavoritesScreen() {
       const favs: string[] = storedFavorites ? JSON.parse(storedFavorites) : [];
       setFavorites(favs);
       if (favs.length > 0) {
-        // Fetch company overviews in parallel
         const results = await Promise.allSettled(
           favs.map(symbol => alphaVantageAPI.getCompanyOverview(symbol))
         );

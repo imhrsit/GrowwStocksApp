@@ -102,7 +102,6 @@ class AlphaVantageAPI {
                 if (Date.now() - timestamp < CACHE_EXPIRATION) {
                     return data as T;
                 }
-                // Remove expired cache
                 await AsyncStorage.removeItem(key);
             }
         } catch (error) {
@@ -126,7 +125,6 @@ class AlphaVantageAPI {
     async getTopGainersLosers(): Promise<TopGainersLosers> {
         const cacheKey = 'top_gainers_losers';
 
-        // Check cache first
         const cachedData = await this.getCachedData<TopGainersLosers>(cacheKey);
         if (cachedData) {
             return cachedData;
@@ -143,7 +141,6 @@ class AlphaVantageAPI {
 
             const data = response.data;
 
-            // Cache the response
             await this.setCachedData(cacheKey, data);
 
             return data;
@@ -156,7 +153,6 @@ class AlphaVantageAPI {
     async getCompanyOverview(symbol: string): Promise<CompanyOverview> {
         const cacheKey = `company_overview_${symbol}`;
 
-        // Check cache first
         const cachedData = await this.getCachedData<CompanyOverview>(cacheKey);
         if (cachedData) {
             return cachedData;
@@ -174,7 +170,6 @@ class AlphaVantageAPI {
 
             const data = response.data;
 
-            // Cache the response
             await this.setCachedData(cacheKey, data);
 
             return data;
@@ -187,7 +182,6 @@ class AlphaVantageAPI {
     async searchSymbol(keywords: string): Promise<any> {
         const cacheKey = `symbol_search_${keywords}`;
 
-        // Check cache first
         const cachedData = await this.getCachedData<any>(cacheKey);
         if (cachedData) {
             return cachedData;
@@ -205,7 +199,6 @@ class AlphaVantageAPI {
 
             const data = response.data;
 
-            // Cache the response for a shorter time (1 minute for search)
             await this.setCachedData(cacheKey, data);
 
             return data;
@@ -218,7 +211,6 @@ class AlphaVantageAPI {
     async getIntradayData(symbol: string, interval: string = '5min'): Promise<any> {
         const cacheKey = `intraday_${symbol}_${interval}`;
 
-        // Check cache first
         const cachedData = await this.getCachedData<any>(cacheKey);
         if (cachedData) {
             return cachedData;
@@ -237,7 +229,6 @@ class AlphaVantageAPI {
 
             const data = response.data;
 
-            // Cache the response
             await this.setCachedData(cacheKey, data);
 
             return data;
@@ -250,7 +241,6 @@ class AlphaVantageAPI {
     async getNews(tickers?: string[], topics?: string[], limit: number = 50): Promise<NewsResponse> {
         const cacheKey = `news_${tickers?.join(',') || 'general'}_${topics?.join(',') || 'general'}_${limit}`;
 
-        // Check cache first (shorter cache for news - 10 minutes)
         const cachedData = await this.getCachedData<NewsResponse>(cacheKey);
         if (cachedData) {
             return cachedData;
@@ -279,7 +269,6 @@ class AlphaVantageAPI {
 
             const data = response.data;
 
-            // Cache the response for 10 minutes
             await this.setCachedData(cacheKey, data);
 
             return data;
@@ -292,7 +281,6 @@ class AlphaVantageAPI {
     async getGlobalQuote(symbol: string): Promise<GlobalQuote> {
         const cacheKey = `global_quote_${symbol}`;
 
-        // Check cache first
         const cachedData = await this.getCachedData<GlobalQuote>(cacheKey);
         if (cachedData) {
             return cachedData;
@@ -310,7 +298,6 @@ class AlphaVantageAPI {
 
             const data = response.data['Global Quote'];
 
-            // Cache the response
             await this.setCachedData(cacheKey, data);
 
             return data;
@@ -323,7 +310,6 @@ class AlphaVantageAPI {
     async getMarketStatus(): Promise<any> {
         const cacheKey = 'market_status';
 
-        // Check cache first (cache for 1 minute)
         const cachedData = await this.getCachedData<any>(cacheKey);
         if (cachedData) {
             return cachedData;
@@ -340,7 +326,6 @@ class AlphaVantageAPI {
 
             const data = response.data;
 
-            // Cache the response for 1 minute
             await this.setCachedData(cacheKey, data);
 
             return data;
@@ -353,7 +338,6 @@ class AlphaVantageAPI {
     async getEarnings(symbol: string): Promise<any> {
         const cacheKey = `earnings_${symbol}`;
 
-        // Check cache first
         const cachedData = await this.getCachedData<any>(cacheKey);
         if (cachedData) {
             return cachedData;
@@ -371,7 +355,6 @@ class AlphaVantageAPI {
 
             const data = response.data;
 
-            // Cache the response
             await this.setCachedData(cacheKey, data);
 
             return data;
@@ -384,7 +367,6 @@ class AlphaVantageAPI {
     async getDailyData(symbol: string): Promise<any> {
         const cacheKey = `daily_${symbol}`;
 
-        // Check cache first
         const cachedData = await this.getCachedData<any>(cacheKey);
         if (cachedData) {
             return cachedData;
@@ -402,7 +384,6 @@ class AlphaVantageAPI {
 
             const data = response.data;
 
-            // Cache the response
             await this.setCachedData(cacheKey, data);
 
             return data;
@@ -415,7 +396,6 @@ class AlphaVantageAPI {
     async getWeeklyData(symbol: string): Promise<any> {
         const cacheKey = `weekly_${symbol}`;
 
-        // Check cache first
         const cachedData = await this.getCachedData<any>(cacheKey);
         if (cachedData) {
             return cachedData;
@@ -433,7 +413,6 @@ class AlphaVantageAPI {
 
             const data = response.data;
 
-            // Cache the response
             await this.setCachedData(cacheKey, data);
 
             return data;
@@ -446,7 +425,6 @@ class AlphaVantageAPI {
     async getMonthlyData(symbol: string): Promise<any> {
         const cacheKey = `monthly_${symbol}`;
 
-        // Check cache first
         const cachedData = await this.getCachedData<any>(cacheKey);
         if (cachedData) {
             return cachedData;
@@ -464,7 +442,6 @@ class AlphaVantageAPI {
 
             const data = response.data;
 
-            // Cache the response
             await this.setCachedData(cacheKey, data);
 
             return data;

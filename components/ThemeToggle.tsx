@@ -37,7 +37,6 @@ export function ThemeToggle() {
   };
 
   const handleThemePress = () => {
-    // Cycle through: light -> dark -> system
     switch (themeMode) {
       case 'light':
         setThemeMode('dark');

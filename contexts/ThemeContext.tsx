@@ -21,12 +21,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
   const [colorScheme, setColorScheme] = useState<ColorScheme>('light');
 
-  // Load saved theme preference on app start
   useEffect(() => {
     loadThemePreference();
   }, []);
 
-  // Update color scheme when theme mode or system preference changes
   useEffect(() => {
     const newColorScheme = themeMode === 'system' 
       ? (systemColorScheme || 'light') 
@@ -80,7 +78,6 @@ export function useTheme() {
   return context;
 }
 
-// Backward compatibility hook
 export function useColorScheme() {
   const { colorScheme } = useTheme();
   return colorScheme;

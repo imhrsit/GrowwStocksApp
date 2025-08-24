@@ -36,7 +36,6 @@ export default function WatchlistScreen() {
         loadWatchlists();
     }, []);
 
-    // Reload watchlists when screen comes into focus
     useFocusEffect(
         useCallback(() => {
             loadWatchlists();
