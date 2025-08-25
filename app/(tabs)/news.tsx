@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { Loading } from '@/components/Loading';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -19,7 +18,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { alphaVantageAPI, APIError, NewsArticle } from '@/services/alphaVantageAPI';
+import { alphaVantageAPI, NewsArticle } from '@/services/alphaVantageAPI';
 
 export default function NewsScreen() {
     const colorScheme = useColorScheme();
@@ -27,7 +26,6 @@ export default function NewsScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<string>('general');
-    const [error, setError] = useState<APIError | Error | null>(null);
 
     const categories = [
         { key: 'general', label: 'General', topics: undefined },
@@ -44,7 +42,6 @@ export default function NewsScreen() {
     const loadNews = async () => {
         try {
             setLoading(articles.length === 0);
-            setError(null);
             
             const selectedCategoryData = categories.find(cat => cat.key === selectedCategory);
             const newsData = await alphaVantageAPI.getNews(
@@ -58,7 +55,6 @@ export default function NewsScreen() {
             }
         } catch (error) {
             console.error('Error loading news:', error);
-            setError(error as APIError | Error);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -224,26 +220,6 @@ export default function NewsScreen() {
         );
     }
 
-    // Show error state if there's an error and no articles
-    if (error && articles.length === 0) {
-        return (
-            <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
-                <ThemedView style={styles.header}>
-                    <ThemedText type="title">Market News</ThemedText>
-                    <ThemeToggle />
-                </ThemedView>
-                {renderCategoryFilter()}
-                <View style={styles.errorContainer}>
-                    <ErrorDisplay 
-                        error={error} 
-                        onRetry={loadNews}
-                        customMessage="Unable to load news. Please check your connection and try again."
-                    />
-                </View>
-            </SafeAreaView>
-        );
-    }
-
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
             <ThemedView style={styles.header}>
@@ -252,15 +228,6 @@ export default function NewsScreen() {
             </ThemedView>
 
             {renderCategoryFilter()}
-
-            {error && articles.length > 0 && (
-                <ErrorDisplay 
-                    error={error} 
-                    onRetry={loadNews}
-                    compact={true}
-                    customMessage="Showing cached news. Tap retry for latest updates."
-                />
-            )}
 
             <FlatList
                 data={articles}

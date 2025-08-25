@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { Loading } from '@/components/Loading';
 import { StockCard } from '@/components/StockCard';
 import { ThemedText } from '@/components/ThemedText';
@@ -11,7 +10,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { alphaVantageAPI, APIError } from '@/services/alphaVantageAPI';
+import { alphaVantageAPI } from '@/services/alphaVantageAPI';
 import { Stock } from '@/types';
 
 export default function ViewAllScreen() {
@@ -24,7 +23,6 @@ export default function ViewAllScreen() {
     const [loadingMore, setLoadingMore] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
-    const [error, setError] = useState<APIError | Error | null>(null);
     
     const ITEMS_PER_PAGE = 20;
 
@@ -43,7 +41,6 @@ export default function ViewAllScreen() {
     const loadStocks = async () => {
         try {
             setLoading(true);
-            setError(null);
 
             const data = await alphaVantageAPI.getTopGainersLosers();
             
@@ -82,7 +79,6 @@ export default function ViewAllScreen() {
             setPage(1);
         } catch (error) {
             console.error('Error loading stocks:', error);
-            setError(error as APIError | Error);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -148,27 +144,6 @@ export default function ViewAllScreen() {
         );
     }
 
-    if (error && displayedStocks.length === 0) {
-        return (
-            <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
-                <ThemedView style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <IconSymbol name="chevron.left" size={24} color={Colors[colorScheme ?? 'light'].text} />
-                    </TouchableOpacity>
-                    <ThemedText style={styles.headerTitle}>{title}</ThemedText>
-                    <View style={styles.placeholder} />
-                </ThemedView>
-                <View style={styles.errorContainer}>
-                    <ErrorDisplay 
-                        error={error} 
-                        onRetry={loadStocks}
-                        customMessage={`Unable to load ${title.toLowerCase()}. Please try again.`}
-                    />
-                </View>
-            </SafeAreaView>
-        );
-    }
-
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
             <ThemedView style={styles.header}>
@@ -183,15 +158,6 @@ export default function ViewAllScreen() {
                 <ThemedText style={styles.subtitle}>
                     {displayedStocks.length} of {allStocks.length} stocks • Updated now
                 </ThemedText>
-
-                {error && displayedStocks.length > 0 && (
-                    <ErrorDisplay 
-                        error={error} 
-                        onRetry={loadStocks}
-                        compact={true}
-                        customMessage="Showing cached data. Tap retry for latest updates."
-                    />
-                )}
 
                 <FlatList
                     data={displayedStocks}

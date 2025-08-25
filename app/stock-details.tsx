@@ -6,7 +6,6 @@ import { LineChart } from 'react-native-chart-kit';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddToWatchlistModal } from '@/components/AddToWatchlistModal';
-import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { Loading } from '@/components/Loading';
 import { NewsCard } from '@/components/NewsCard';
 import { ThemedText } from '@/components/ThemedText';
@@ -14,7 +13,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { alphaVantageAPI, APIError, CompanyOverview, GlobalQuote, NewsArticle } from '@/services/alphaVantageAPI';
+import { alphaVantageAPI, CompanyOverview, GlobalQuote, NewsArticle } from '@/services/alphaVantageAPI';
 
 interface ChartData {
     labels: string[];
@@ -63,9 +62,6 @@ export default function StockDetailsScreen() {
     const [newsLoading, setNewsLoading] = useState(false);
     const [selectedTimeFilter, setSelectedTimeFilter] = useState<TimeFilter>('1H');
     const [isFavorite, setIsFavorite] = useState(false);
-    const [error, setError] = useState<APIError | Error | null>(null);
-    const [chartError, setChartError] = useState<APIError | Error | null>(null);
-    const [newsError, setNewsError] = useState<APIError | Error | null>(null);
 
     useEffect(() => {
         if (symbol) {
@@ -89,7 +85,6 @@ export default function StockDetailsScreen() {
 
         try {
             setChartLoading(true);
-            setChartError(null);
 
             let timeSeriesData;
             let dataKey;
@@ -170,7 +165,6 @@ export default function StockDetailsScreen() {
             }
         } catch (error) {
             console.error('Error loading chart data:', error);
-            setChartError(error as APIError | Error);
         } finally {
             setChartLoading(false);
         }
@@ -211,12 +205,10 @@ export default function StockDetailsScreen() {
 
         try {
             setNewsLoading(true);
-            setNewsError(null);
             const newsResponse = await alphaVantageAPI.getNews([symbol], undefined, 10);
             setNews(newsResponse.feed || []);
         } catch (error) {
             console.error('Error loading news:', error);
-            setNewsError(error as APIError | Error);
         } finally {
             setNewsLoading(false);
         }
@@ -227,7 +219,6 @@ export default function StockDetailsScreen() {
 
         try {
             setLoading(true);
-            setError(null);
 
             const [overview, quote, earnings] = await Promise.allSettled([
                 alphaVantageAPI.getCompanyOverview(symbol),
@@ -237,8 +228,6 @@ export default function StockDetailsScreen() {
 
             if (overview.status === 'fulfilled') {
                 setCompanyData(overview.value);
-            } else {
-                console.error('Failed to load company overview:', overview.reason);
             }
 
             if (quote.status === 'fulfilled' && quote.value && quote.value['05. price'] !== undefined) {
@@ -259,8 +248,6 @@ export default function StockDetailsScreen() {
                     change: change,
                     changePercent: changePercent
                 });
-            } else {
-                console.error('Failed to load quote data:', quote.status === 'rejected' ? quote.reason : 'Invalid data');
             }
 
             if (earnings.status === 'fulfilled') {
@@ -268,17 +255,10 @@ export default function StockDetailsScreen() {
                     annualEarnings: earnings.value?.annualEarnings || [],
                     quarterlyEarnings: earnings.value?.quarterlyEarnings || []
                 });
-            } else {
-                console.error('Failed to load earnings data:', earnings.reason);
-            }
-
-            if (overview.status === 'rejected' && quote.status === 'rejected' && earnings.status === 'rejected') {
-                setError(overview.reason as APIError | Error);
             }
 
         } catch (error) {
             console.error('Error loading stock data:', error);
-            setError(error as APIError | Error);
         } finally {
             setLoading(false);
         }
@@ -386,25 +366,6 @@ export default function StockDetailsScreen() {
         );
     }
 
-    if (error && !companyData) {
-        return (
-            <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <IconSymbol name="chevron.left" size={24} color={Colors[colorScheme ?? 'light'].text} />
-                    </TouchableOpacity>
-                </View>
-                <View style={styles.errorContainer}>
-                    <ErrorDisplay 
-                        error={error} 
-                        onRetry={loadStockData}
-                        customMessage={`Unable to load data for ${symbol}. Please try again.`}
-                    />
-                </View>
-            </SafeAreaView>
-        );
-    }
-
     const currentPrice = priceData?.price || 0;
     const priceChange = priceData?.change || 0;
     const changePercent = priceData?.changePercent || 0;
@@ -465,14 +426,7 @@ export default function StockDetailsScreen() {
                 <ThemedView style={styles.chartContainer}>
                     <ThemedText style={styles.sectionTitle}>Price Chart ({selectedTimeFilter})</ThemedText>
                     
-                    {chartError ? (
-                        <ErrorDisplay 
-                            error={chartError} 
-                            onRetry={() => loadChartData(selectedTimeFilter)}
-                            compact={true}
-                            customMessage="Failed to load chart data. Please try again."
-                        />
-                    ) : chartData ? (
+                    {chartData ? (
                         <View style={[styles.chartWrapper, chartLoading && { opacity: 0.5 }]}>
                             <LineChart
                                 data={chartData}
@@ -633,14 +587,7 @@ export default function StockDetailsScreen() {
                 {/* Stock News */}
                 <ThemedView style={styles.newsContainer}>
                     <ThemedText style={styles.sectionTitle}>Latest News</ThemedText>
-                    {newsError ? (
-                        <ErrorDisplay 
-                            error={newsError} 
-                            onRetry={loadNews}
-                            compact={true}
-                            customMessage="Failed to load news. Please try again."
-                        />
-                    ) : newsLoading ? (
+                    {newsLoading ? (
                         <View style={styles.newsLoadingContainer}>
                             <Loading text="Loading news..." />
                         </View>

@@ -1,38 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { ENV } from '../env';
 
 const CACHE_EXPIRATION = ENV.CACHE_EXPIRATION_TIME;
-
-enum APIErrorType {
-    RATE_LIMIT = 'RATE_LIMIT',
-    NETWORK_ERROR = 'NETWORK_ERROR',
-    INVALID_API_KEY = 'INVALID_API_KEY',
-    DATA_NOT_AVAILABLE = 'DATA_NOT_AVAILABLE',
-    TIMEOUT = 'TIMEOUT',
-    UNKNOWN = 'UNKNOWN'
-}
-
-class APIError extends Error {
-    type: APIErrorType;
-    retryAfter?: number;
-    originalError?: any;
-
-    constructor(message: string, type: APIErrorType, retryAfter?: number, originalError?: any) {
-        super(message);
-        this.name = 'APIError';
-        this.type = type;
-        this.retryAfter = retryAfter;
-        this.originalError = originalError;
-    }
-}
-
-interface RetryConfig {
-    maxRetries: number;
-    baseDelay: number;
-    maxDelay: number;
-    backoffMultiplier: number;
-}
 
 export interface StockQuote {
     symbol: string;
@@ -124,152 +94,6 @@ export interface GlobalQuote {
 }
 
 class AlphaVantageAPI {
-    private defaultRetryConfig: RetryConfig = {
-        maxRetries: 3,
-        baseDelay: 1000,
-        maxDelay: 10000,
-        backoffMultiplier: 2
-    };
-
-    private rateLimitRetryConfig: RetryConfig = {
-        maxRetries: 2,
-        baseDelay: 60000, // 1 minute
-        maxDelay: 300000, // 5 minutes
-        backoffMultiplier: 2
-    };
-
-    private async sleep(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    private calculateRetryDelay(attempt: number, config: RetryConfig): number {
-        const delay = config.baseDelay * Math.pow(config.backoffMultiplier, attempt - 1);
-        return Math.min(delay, config.maxDelay);
-    }
-
-    private detectErrorType(error: any, data: any): APIError {
-        if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
-            return new APIError('Request timeout', APIErrorType.TIMEOUT, undefined, error);
-        }
-
-        if (!error.response) {
-            return new APIError('Network connection failed', APIErrorType.NETWORK_ERROR, undefined, error);
-        }
-
-        if (data) {
-            if (data.Information && data.Information.includes('API call frequency')) {
-                return new APIError(
-                    'API rate limit exceeded. Please try again later.',
-                    APIErrorType.RATE_LIMIT,
-                    3600, // 1 hour
-                    error
-                );
-            }
-
-            // Daily quota exceeded
-            if (data.Information && data.Information.includes('daily quota')) {
-                return new APIError(
-                    'Daily API quota exceeded. Please try again tomorrow.',
-                    APIErrorType.RATE_LIMIT,
-                    86400, // 24 hours
-                    error
-                );
-            }
-
-            // Invalid API key
-            if (data.Information && data.Information.includes('API key')) {
-                return new APIError('Invalid API key', APIErrorType.INVALID_API_KEY, undefined, error);
-            }
-
-            // Data not available
-            if (data['Error Message']) {
-                return new APIError(
-                    data['Error Message'],
-                    APIErrorType.DATA_NOT_AVAILABLE,
-                    undefined,
-                    error
-                );
-            }
-
-            // Data not available
-            if (data.Note && data.Note.includes('premium')) {
-                return new APIError(
-                    'This data requires a premium API key',
-                    APIErrorType.DATA_NOT_AVAILABLE,
-                    undefined,
-                    error
-                );
-            }
-        }
-
-        // HTTP status code errors
-        if (error.response?.status >= 500) {
-            return new APIError('Server error', APIErrorType.NETWORK_ERROR, undefined, error);
-        }
-
-        if (error.response?.status === 429) {
-            return new APIError('Too many requests', APIErrorType.RATE_LIMIT, 3600, error);
-        }
-
-        return new APIError('Unknown error occurred', APIErrorType.UNKNOWN, undefined, error);
-    }
-
-    private async makeRequestWithRetry<T>(
-        requestFn: () => Promise<any>,
-        customRetryConfig?: Partial<RetryConfig>
-    ): Promise<T> {
-        const config = { ...this.defaultRetryConfig, ...customRetryConfig };
-        let lastError: APIError;
-
-        for (let attempt = 1; attempt <= config.maxRetries + 1; attempt++) {
-            try {
-                const response = await requestFn();
-                const data = response.data;
-
-                const apiError = this.detectErrorType(null, data);
-                if (apiError.type !== APIErrorType.UNKNOWN) {
-                    throw apiError;
-                }
-
-                return data;
-            } catch (error) {
-                if (error instanceof APIError) {
-                    lastError = error;
-                } else {
-                    lastError = this.detectErrorType(error, (error as AxiosError)?.response?.data);
-                }
-
-                console.error(`API request attempt ${attempt} failed:`, lastError.message);
-
-                if (lastError.type === APIErrorType.INVALID_API_KEY || 
-                    lastError.type === APIErrorType.DATA_NOT_AVAILABLE) {
-                    throw lastError;
-                }
-
-                if (attempt > config.maxRetries) {
-                    throw lastError;
-                }
-
-                let retryDelay: number;
-                if (lastError.type === APIErrorType.RATE_LIMIT) {
-                    const rateLimitConfig = { ...this.rateLimitRetryConfig, ...customRetryConfig };
-                    retryDelay = this.calculateRetryDelay(attempt, rateLimitConfig);
-                    
-                    if (lastError.retryAfter) {
-                        retryDelay = Math.min(lastError.retryAfter * 1000, rateLimitConfig.maxDelay);
-                    }
-                } else {
-                    retryDelay = this.calculateRetryDelay(attempt, config);
-                }
-
-                console.log(`Retrying in ${retryDelay / 1000} seconds... (attempt ${attempt}/${config.maxRetries})`);
-                await this.sleep(retryDelay);
-            }
-        }
-
-        throw lastError!;
-    }
-
     private async getCachedData<T>(key: string): Promise<T | null> {
         try {
             const cached = await AsyncStorage.getItem(key);
@@ -300,32 +124,17 @@ class AlphaVantageAPI {
 
     private async getFromCacheOrFetch<T>(
         cacheKey: string,
-        fetchFn: () => Promise<T>,
-        customRetryConfig?: Partial<RetryConfig>
+        fetchFn: () => Promise<any>
     ): Promise<T> {
         const cachedData = await this.getCachedData<T>(cacheKey);
         if (cachedData) {
             return cachedData;
         }
 
-        try {
-            const data = await this.makeRequestWithRetry<T>(fetchFn, customRetryConfig);
-            await this.setCachedData(cacheKey, data);
-            return data;
-        } catch (error) {
-            try {
-                const expiredCache = await AsyncStorage.getItem(cacheKey);
-                if (expiredCache) {
-                    const { data } = JSON.parse(expiredCache);
-                    console.warn('Using expired cache data due to API error:', error);
-                    return data as T;
-                }
-            } catch (cacheError) {
-                console.error('Failed to read expired cache:', cacheError);
-            }
-            
-            throw error;
-        }
+        const response = await fetchFn();
+        const data = response.data;
+        await this.setCachedData(cacheKey, data);
+        return data;
     }
 
     async getTopGainersLosers(): Promise<TopGainersLosers> {
@@ -339,8 +148,7 @@ class AlphaVantageAPI {
                     apikey: ENV.ALPHA_VANTAGE_API_KEY,
                 },
                 timeout: 15000,
-            }),
-            { maxRetries: 2 }
+            })
         );
     }
 
@@ -372,8 +180,7 @@ class AlphaVantageAPI {
                     apikey: ENV.ALPHA_VANTAGE_API_KEY,
                 },
                 timeout: 15000,
-            }),
-            { maxRetries: 1 }
+            })
         );
     }
 
@@ -417,8 +224,7 @@ class AlphaVantageAPI {
             () => axios.get(ENV.ALPHA_VANTAGE_BASE_URL, {
                 params,
                 timeout: 20000,
-            }),
-            { maxRetries: 2 }
+            })
         );
     }
 
@@ -441,10 +247,7 @@ class AlphaVantageAPI {
             return (responseData as any)['Global Quote'];
         }
         
-        throw new APIError(
-            'Global quote data not available for this symbol',
-            APIErrorType.DATA_NOT_AVAILABLE
-        );
+        throw new Error('Global quote data not available for this symbol');
     }
 
     async getMarketStatus(): Promise<any> {
@@ -458,8 +261,7 @@ class AlphaVantageAPI {
                     apikey: ENV.ALPHA_VANTAGE_API_KEY,
                 },
                 timeout: 15000,
-            }),
-            { maxRetries: 1 }
+            })
         );
     }
 
@@ -529,5 +331,3 @@ class AlphaVantageAPI {
 }
 
 export const alphaVantageAPI = new AlphaVantageAPI();
-
-export { APIError, APIErrorType };

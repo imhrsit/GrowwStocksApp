@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { alphaVantageAPI, APIError } from '@/services/alphaVantageAPI';
+import { alphaVantageAPI } from '@/services/alphaVantageAPI';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { IconSymbol } from './ui/IconSymbol';
@@ -26,7 +26,6 @@ export function MarketStatus() {
     const [marketData, setMarketData] = useState<MarketStatusData | null>(null);
     const [loading, setLoading] = useState(true);
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [error, setError] = useState<APIError | Error | null>(null);
 
     useEffect(() => {
         loadMarketStatus();
@@ -40,12 +39,10 @@ export function MarketStatus() {
 
     const loadMarketStatus = async () => {
         try {
-            setError(null);
             const data = await alphaVantageAPI.getMarketStatus();
             setMarketData(data);
         } catch (error) {
             console.error('Error loading market status:', error);
-            setError(error as APIError | Error);
         } finally {
             setLoading(false);
         }
@@ -75,7 +72,7 @@ export function MarketStatus() {
         return isOpen;
     };
 
-    if (loading || !marketData || error) {
+    if (loading || !marketData) {
         const isOpenByTime = isMarketOpenByTime();
         const statusColor = isOpenByTime ? '#10B981' : '#EF4444';
         const statusIcon = isOpenByTime ? 'circle.fill' : 'circle';
@@ -87,11 +84,6 @@ export function MarketStatus() {
                     <ThemedText style={[styles.statusText, { color: statusColor }]}>
                         Market {isOpenByTime ? 'Open' : 'Closed'}
                     </ThemedText>
-                    {error && (
-                        <ThemedText style={styles.fallbackText}>
-                            • Est.
-                        </ThemedText>
-                    )}
                 </View>
                 
                 <ThemedText style={styles.timeText}>

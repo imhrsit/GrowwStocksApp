@@ -1,5 +1,4 @@
 
-import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { Loading } from '@/components/Loading';
 import { StockCard } from '@/components/StockCard';
 import { ThemedText } from '@/components/ThemedText';
@@ -8,7 +7,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { alphaVantageAPI, APIError } from '@/services/alphaVantageAPI';
+import { alphaVantageAPI } from '@/services/alphaVantageAPI';
 import { Stock } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -24,7 +23,6 @@ export default function FavoritesScreen() {
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<APIError | Error | null>(null);
 
   useEffect(() => {
     loadFavorites();
@@ -39,7 +37,6 @@ export default function FavoritesScreen() {
   const loadFavorites = async () => {
     setLoading(true);
     try {
-      setError(null);
       const storedFavorites = await AsyncStorage.getItem('favorites');
       const favs: string[] = storedFavorites ? JSON.parse(storedFavorites) : [];
       setFavorites(favs);
@@ -80,7 +77,6 @@ export default function FavoritesScreen() {
       }
     } catch (error) {
       console.error('Error loading favorites:', error);
-      setError(error as APIError | Error);
       setStocks([]);
     } finally {
       setLoading(false);
@@ -107,27 +103,6 @@ export default function FavoritesScreen() {
           </View>
         </ThemedView>
         <Loading text="Loading favorites..." />
-      </SafeAreaView>
-    );
-  }
-
-  // Show error state if there's an error and no favorites data
-  if (error && stocks.length === 0) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
-        <ThemedView style={styles.header}>
-          <View style={styles.titleRow}>
-            <ThemedText type="title">Favorites</ThemedText>
-            <ThemeToggle />
-          </View>
-        </ThemedView>
-        <View style={styles.errorContainer}>
-          <ErrorDisplay 
-            error={error} 
-            onRetry={loadFavorites}
-            customMessage="Unable to load favorites. Please check your connection and try again."
-          />
-        </View>
       </SafeAreaView>
     );
   }
