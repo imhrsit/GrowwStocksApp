@@ -15,6 +15,7 @@ const MAPPING = {
   'star.fill': 'star',
   'star': 'star-border',
   'chart.line.uptrend.xyaxis': 'trending-up',
+  'chart.bar': 'bar-chart',
   'newspaper': 'article',
   'bookmark.fill': 'bookmark',
   'bookmark': 'bookmark-border',
@@ -27,8 +28,10 @@ const MAPPING = {
   'arrow.down': 'keyboard-arrow-down',
   'minus': 'remove',
   'xmark': 'close',
+  'xmark.circle.fill': 'cancel',
   'plus': 'add',
   'trash': 'delete',
+  'checkmark': 'check',
 } as IconMapping;
 
 export function IconSymbol({
