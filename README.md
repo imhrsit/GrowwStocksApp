@@ -3,10 +3,10 @@
 A React Native stocks/ etfs broking platform, featuring real-time market data from Alpha Vantage API.
 
 <div align="center">
-  <img src="https://drive.google.com/file/d/1iv8HpBbV5uiTHfNNwZmOTGcJdsN_kc26/view?usp=sharing" alt="Market Dashboard" width="200"/>
-  <img src="https://drive.google.com/file/d/1NbNJD8e3v06dON7mcZd8ZAV5uM6C5bjS/view?usp=sharing" alt="Stock Details" width="200"/>
-  <img src="https://drive.google.com/file/d/15LZePfYo7fpD7ZZXDKPRkerwHKFR1cw6/view?usp=sharing" alt="Favorites" width="200"/>
-  <img src="https://drive.google.com/file/d/1PSw6wx6G4P63NUQui6sUYgvFJgEsb77j/view?usp=sharing" alt="News Feed" width="200"/>
+  <img src="https://drive.google.com/uc?export=view&id=1iv8HpBbV5uiTHfNNwZmOTGcJdsN_kc26" alt="Market Dashboard" width="200"/>
+  <img src="https://drive.google.com/uc?export=view&id=1NbNJD8e3v06dON7mcZd8ZAV5uM6C5bjS" alt="Stock Details" width="200"/>
+  <img src="https://drive.google.com/uc?export=view&id=15LZePfYo7fpD7ZZXDKPRkerwHKFR1cw6" alt="Favorites" width="200"/>
+  <img src="https://drive.google.com/uc?export=view&id=1PSw6wx6G4P63NUQui6sUYgvFJgEsb77j" alt="News Feed" width="200"/>
 </div>
 
 ## ✨ Features
@@ -90,8 +90,8 @@ A React Native stocks/ etfs broking platform, featuring real-time market data fr
 
 ### 📱 Platform Options
 Choose your preferred development environment:
-- 📱 [iOS Simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- 🤖 [Android Emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
+- 📱 [iOS](https://docs.expo.dev/workflow/ios-simulator/)
+- 🤖 [Android](https://docs.expo.dev/workflow/android-studio-emulator/)
 - 🌐 Web Browser
 
 ## 🏗️ Architecture & Tech Stack
