@@ -6,7 +6,8 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { alphaVantageAPI, CompanyOverview } from '@/services/alphaVantageAPI';
+import { alphaVantageAPI } from '@/services/alphaVantageAPI';
+import { Stock } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
@@ -18,7 +19,7 @@ export default function FavoritesScreen() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [stocks, setStocks] = useState<CompanyOverview[]>([]);
+  const [stocks, setStocks] = useState<Stock[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -38,19 +39,43 @@ export default function FavoritesScreen() {
       const storedFavorites = await AsyncStorage.getItem('favorites');
       const favs: string[] = storedFavorites ? JSON.parse(storedFavorites) : [];
       setFavorites(favs);
+      
       if (favs.length > 0) {
-        const results = await Promise.allSettled(
-          favs.map(symbol => alphaVantageAPI.getCompanyOverview(symbol))
-        );
-        setStocks(
-          results
-            .map((r, i) => (r.status === 'fulfilled' ? { ...r.value, Symbol: favs[i] } : null))
-            .filter(Boolean) as CompanyOverview[]
-        );
+        const stockPromises = favs.map(async (symbol) => {
+          try {
+            const [overviewResult, quoteResult] = await Promise.allSettled([
+              alphaVantageAPI.getCompanyOverview(symbol),
+              alphaVantageAPI.getGlobalQuote(symbol)
+            ]);
+
+            const overview = overviewResult.status === 'fulfilled' ? overviewResult.value : null;
+            const quote = quoteResult.status === 'fulfilled' ? quoteResult.value : null;
+
+            if (overview && quote) {
+              const stock: Stock = {
+                symbol: overview.Symbol,
+                name: overview.Name,
+                price: parseFloat(quote['05. price']) || 0,
+                change: parseFloat(quote['09. change']) || 0,
+                changePercent: parseFloat(quote['10. change percent'].replace('%', '')) || 0
+              };
+              return stock;
+            }
+            return null;
+          } catch (error) {
+            console.error(`Error fetching data for ${symbol}:`, error);
+            return null;
+          }
+        });
+
+        const results = await Promise.all(stockPromises);
+        const validStocks = results.filter(Boolean) as Stock[];
+        setStocks(validStocks);
       } else {
         setStocks([]);
       }
     } catch (error) {
+      console.error('Error loading favorites:', error);
       setStocks([]);
     } finally {
       setLoading(false);
@@ -109,11 +134,11 @@ export default function FavoritesScreen() {
           data={stocks}
           renderItem={({ item }) => (
             <StockCard
-              stock={{ symbol: item.Symbol, name: item.Name, price: 0, change: 0, changePercent: 0 }}
-              onPress={() => handleStockPress(item.Symbol, item.Name)}
+              stock={item}
+              onPress={() => handleStockPress(item.symbol, item.name)}
             />
           )}
-          keyExtractor={item => item.Symbol}
+          keyExtractor={item => item.symbol}
           numColumns={2}
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}

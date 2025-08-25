@@ -25,9 +25,16 @@ export function MarketStatus() {
     const colorScheme = useColorScheme();
     const [marketData, setMarketData] = useState<MarketStatusData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [currentTime, setCurrentTime] = useState(new Date());
 
     useEffect(() => {
         loadMarketStatus();
+        
+        const interval = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 60000);
+        
+        return () => clearInterval(interval);
     }, []);
 
     const loadMarketStatus = async () => {
@@ -41,8 +48,49 @@ export function MarketStatus() {
         }
     };
 
+    const isMarketOpenByTime = () => {
+        const now = new Date();
+        
+        const dayOfWeek = now.getDay();
+        
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            return false;
+        }
+        
+        const hours = now.getHours();
+        const isOpen = hours >= 9 && hours < 16;
+        
+        // console.log('Market Status Check:', {
+        //     currentTime: now.toISOString(),
+        //     dayOfWeek,
+        //     hours,
+        //     isWeekday: dayOfWeek >= 1 && dayOfWeek <= 5,
+        //     isBusinessHours: hours >= 9 && hours < 16,
+        //     isOpen
+        // });
+        
+        return isOpen;
+    };
+
     if (loading || !marketData) {
-        return null;
+        const isOpenByTime = isMarketOpenByTime();
+        const statusColor = isOpenByTime ? '#10B981' : '#EF4444';
+        const statusIcon = isOpenByTime ? 'circle.fill' : 'circle';
+        
+        return (
+            <ThemedView style={[styles.container, { borderColor: Colors[colorScheme ?? 'light'].border }]}>
+                <View style={styles.statusRow}>
+                    <IconSymbol name={statusIcon} size={12} color={statusColor} />
+                    <ThemedText style={[styles.statusText, { color: statusColor }]}>
+                        Market {isOpenByTime ? 'Open' : 'Closed'}
+                    </ThemedText>
+                </View>
+                
+                <ThemedText style={styles.timeText}>
+                    9:30 AM - 4:00 PM ET
+                </ThemedText>
+            </ThemedView>
+        );
     }
 
     const usMarket = marketData.markets?.find(market => 
@@ -50,10 +98,30 @@ export function MarketStatus() {
     );
 
     if (!usMarket) {
-        return null;
+        const isOpenByTime = isMarketOpenByTime();
+        const statusColor = isOpenByTime ? '#10B981' : '#EF4444';
+        const statusIcon = isOpenByTime ? 'circle.fill' : 'circle';
+        
+        return (
+            <ThemedView style={[styles.container, { borderColor: Colors[colorScheme ?? 'light'].border }]}>
+                <View style={styles.statusRow}>
+                    <IconSymbol name={statusIcon} size={12} color={statusColor} />
+                    <ThemedText style={[styles.statusText, { color: statusColor }]}>
+                        Market {isOpenByTime ? 'Open' : 'Closed'}
+                    </ThemedText>
+                </View>
+                
+                <ThemedText style={styles.timeText}>
+                    9:30 AM - 4:00 PM ET
+                </ThemedText>
+            </ThemedView>
+        );
     }
 
-    const isOpen = usMarket.current_status === 'open';
+    const apiIsOpen = usMarket.current_status === 'open';
+    const timeBasedIsOpen = isMarketOpenByTime();
+    
+    const isOpen = timeBasedIsOpen || apiIsOpen;
     const statusColor = isOpen ? '#10B981' : '#EF4444';
     const statusIcon = isOpen ? 'circle.fill' : 'circle';
 
