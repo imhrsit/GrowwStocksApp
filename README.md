@@ -47,7 +47,6 @@ A React Native stocks/ etfs broking platform, featuring real-time market data fr
 
 ### Prerequisites
 - Node.js (v16 or higher)
-- Expo CLI
 - iOS Simulator / Android Emulator (optional)
 
 ### Installation
@@ -87,7 +86,6 @@ Choose your preferred development environment:
 - 📱 [iOS Simulator](https://docs.expo.dev/workflow/ios-simulator/)
 - 🤖 [Android Emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
 - 🌐 Web Browser
-- 📲 [Expo Go](https://expo.dev/go) (scan QR code)
 
 ## 🏗️ Architecture & Tech Stack
 
